@@ -3,10 +3,11 @@
 [![Python](https://img.shields.io/badge/Python-3.11%2B%20(tested%203.11.9)-3776AB.svg)](https://www.python.org/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-%3E%3D1.51.0%2C%3C2.0.0-0284C7.svg)](https://streamlit.io/)
 ![Tests](https://img.shields.io/badge/Tests-186%20Passing-16A34A.svg)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **SocialPulse** is a modular Python Data Science and Decision-Support platform designed to analyze audience relatability, high-intent engagement behavior, controlled creative experimentation, and cohort trajectory forecasting across short-form social media platforms (**Instagram Reels/Carousels** and **YouTube Shorts**).
 
-*Developed as the Data Science Major Project for **Unlox** (Originally scoped as "The Data-Driven Social Engagement Initiative"; see [`Problem_Statement/Data_Science_Major_Project_December.pdf`](Problem_Statement/Data_Science_Major_Project_December.pdf)).*
+**SocialPulse is an Unlox Major Project developed as part of an academic major-project initiative.**
 
 ---
 
@@ -16,6 +17,14 @@ Conventional creator dashboards rely heavily on passive vanity metrics such as r
 
 > **Important Provenance & Operational Mode:**
 > SocialPulse operates in **Offline Synthetic Benchmark Mode**. Every derived dataset, serialized model, and interactive view is backed deterministically by curated multi-platform benchmark inputs in [`data/sample/`](data/sample/). Platform API connectors (`InstagramGraphAPIConnector`, `YouTubeDataAPIConnector`) and scraper interfaces (`SocialMediaScraper`) are contract/placeholder interfaces defining schema boundaries rather than live credentialed scrapers or OAuth clients.
+
+---
+
+## 🎓 Project Origin
+
+SocialPulse is an Unlox Major Project developed as part of an academic major-project initiative, originally scoped as *"The Data-Driven Social Engagement Initiative."* The original problem statement document is archived at [`Problem_Statement/Data_Science_Major_Project_December.pdf`](Problem_Statement/Data_Science_Major_Project_December.pdf) and is redistributed in this repository with owner-confirmed permission for academic context and provenance.
+
+From that academic specification, the codebase was engineered into a 7-module analytics, statistical experimentation, NLP, and walk-forward forecasting workspace operating deterministically over curated offline benchmark datasets.
 
 ---
 
@@ -113,7 +122,7 @@ flowchart TD
 ## 📂 Verified Project Structure
 
 ```
-Unlox Major project/
+SocialPulse/
 │
 ├── .streamlit/
 │   └── config.toml                                 <- Light workspace + dark slate sidebar palette
@@ -180,9 +189,10 @@ Unlox Major project/
 ├── docs/
 │   ├── MODULE_6_GROWTH_DASHBOARD.md
 │   └── MODULE_7_TREND_FORECASTING.md
-├── tests/                                          <- 15 automated pytest modules (186 tests)
+├── tests/                                          <- 16 automated pytest modules (186 tests)
 ├── utils/                                          <- Project root & YAML config loader helpers
 ├── config.yaml                                     <- Static reference configuration snapshot (not read by runtime)
+├── LICENSE                                         <- MIT License (project-owned code & eligible assets)
 ├── requirements.txt                                <- Core runtime dependencies
 ├── requirements-dev.txt                            <- Runtime + pytest + exploratory notebook packages
 └── README.md
@@ -200,7 +210,9 @@ Unlox Major project/
 
 #### Windows PowerShell
 ```powershell
-cd "path\to\Unlox Major project"
+# Clone from GitHub (or navigate to your local SocialPulse directory):
+# git clone https://github.com/SarthakPandey84/Social-Pulse.git SocialPulse
+cd "path\to\SocialPulse"
 
 python -m venv .venv
 
@@ -218,26 +230,27 @@ pip install -r requirements-dev.txt
 
 #### Linux / macOS (Bash / Zsh)
 ```bash
-cd "Unlox Major project"
+# git clone https://github.com/SarthakPandey84/Social-Pulse.git SocialPulse
+cd SocialPulse
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
 ### 3. Rebuild All Runtime Artifacts (From Clean Checkout)
-Because generated datasets (`data/processed/*`), trained binaries (`models/*.joblib`), and `database/social_analytics.db` are excluded in `.gitignore`, rebuild them cleanly from `data/sample/` before starting the app:
+Because generated datasets (`data/processed/*`), trained binaries (`models/*.joblib`), and `database/social_analytics.db` are excluded in `.gitignore`, you **must** build them first from `data/sample/` before launching the Streamlit application:
 
 ```powershell
-# Validates sample CSVs, regenerates processed Parquet/CSV files, SQLite DB, and models,
-# and runs post-build schema, SQLite, and model-inference checks:
+# 1) Validate sample CSVs, regenerate processed Parquet/CSV files, SQLite DB, and models,
+#    and run post-build schema, SQLite, and model-inference checks:
 python scripts/build_all_artifacts.py
 
-# Validate an already-built workspace without regenerating files:
+# Optional: validate an already-built workspace without regenerating files:
 python scripts/build_all_artifacts.py --validate-only
 ```
 
 ### 4. Launch the SocialPulse Application
-Always launch from the repository root using the unified entrypoint:
+After `python scripts/build_all_artifacts.py` completes, launch from the repository root (`SocialPulse/`) using the unified entrypoint:
 
 ```powershell
 streamlit run streamlit_app.py
@@ -269,6 +282,11 @@ pytest tests/ -v
 
 ---
 
-## 📄 Licensing Status
+## 📄 License
 
-No `LICENSE` file is currently included in this repository. Open-source or organizational licensing terms remain pending owner confirmation.
+Project-owned source code, automated tests, pipeline scripts, project documentation, synthetic benchmark datasets (`data/sample/*.csv`), and eligible SVG/UI assets in this repository are licensed under the **MIT License** (`Copyright (c) 2026 Sarthak Pandey`). See [`LICENSE`](LICENSE) for the full license text.
+
+**Scope & Exclusions:**
+- The MIT License covers only project-owned code and eligible repository assets created for SocialPulse.
+- Third-party dependencies listed in [`requirements.txt`](requirements.txt) and [`requirements-dev.txt`](requirements-dev.txt) remain governed by their respective upstream open-source licenses.
+- The external academic problem statement document [`Problem_Statement/Data_Science_Major_Project_December.pdf`](Problem_Statement/Data_Science_Major_Project_December.pdf) originates from the Unlox Major Project brief and is **not** covered by the MIT License; it is retained and redistributed in this repository with owner-confirmed permission solely for academic context and provenance.
