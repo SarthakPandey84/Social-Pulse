@@ -76,8 +76,21 @@ def test_streamlit_config_toml_palette_consistency():
 
 
 def test_root_socialpulse_entrypoint_and_clean_navigation():
-    """Verify streamlit_app.py renders without exceptions and excludes the legacy 06_Growth_Analytics route."""
+    """Verify streamlit_app.py renders without exceptions and the redundant 06_Growth_Analytics redirect is removed."""
     root = Path(__file__).resolve().parent.parent
+    assert not (root / "app" / "pages" / "06_Growth_Analytics.py").exists()
+    assert not (root / "config.yaml").exists()
+    assert not (root / "scripts" / "audit_module3.py").exists()
+
+    import utils
+    from utils import get_project_root as root_fn_pkg
+    from utils.helpers import get_project_root as root_fn_mod
+
+    assert utils.__all__ == ["get_project_root"]
+    assert not hasattr(utils, "load_config")
+    assert root_fn_pkg is root_fn_mod
+    assert root_fn_pkg() == root
+
     entrypoint_src = (root / "streamlit_app.py").read_text(encoding="utf-8")
     assert "06_Growth_Analytics.py" not in entrypoint_src
     for idx_file in [
@@ -675,3 +688,856 @@ def test_page3_counts_and_status_filter_handle_inference_failures_and_empty_text
     assert any("Showing **2** matching comments:" in m.value for m in at3.markdown)
     filtered_df_out = at3.dataframe[0].value
     assert set(filtered_df_out["comment_id"].tolist()) == {"C_FAIL_1", "C_FAIL_2"}
+
+
+# =========================================================================
+# BATCH 4: SHARED DATA LOADER & RESOURCE CACHING TESTS
+# =========================================================================
+
+
+def test_shared_loader_csv_and_parquet_caching_invalidation_and_isolation(tmp_path, monkeypatch):
+    """CSV and Parquet loaders must hit cache on unchanged files, invalidate on disk updates, and isolate DataFrame copies."""
+    import os
+    import pandas as pd
+    from app.components.data_loader import (
+        file_signature,
+        load_csv_table,
+        load_parquet_table,
+    )
+
+    # Missing file signature must not crash and loaders return None cleanly
+    missing_path = tmp_path / "does_not_exist.csv"
+    assert file_signature(missing_path)[1] is False
+    assert load_csv_table(missing_path) is None
+    assert load_parquet_table(tmp_path / "does_not_exist.parquet") is None
+
+    csv_file = tmp_path / "sample.csv"
+    pq_file = tmp_path / "sample.parquet"
+    pd.DataFrame({"post_id": ["P1", "P2"], "views": [100, 200]}).to_csv(csv_file, index=False)
+    pd.DataFrame({"post_id": ["P1", "P2"], "views": [100, 200]}).to_parquet(pq_file, index=False)
+
+    csv_calls = {"count": 0}
+    pq_calls = {"count": 0}
+    orig_read_csv = pd.read_csv
+    orig_read_parquet = pd.read_parquet
+
+    def _spy_csv(path, *args, **kwargs):
+        if Path(path).resolve() == csv_file.resolve():
+            csv_calls["count"] += 1
+        return orig_read_csv(path, *args, **kwargs)
+
+    def _spy_parquet(path, *args, **kwargs):
+        if Path(path).resolve() == pq_file.resolve():
+            pq_calls["count"] += 1
+        return orig_read_parquet(path, *args, **kwargs)
+
+    monkeypatch.setattr(pd, "read_csv", _spy_csv)
+    monkeypatch.setattr(pd, "read_parquet", _spy_parquet)
+
+    # 1. Cold load -> cache hit on repeated call
+    df_csv_1 = load_csv_table(csv_file)
+    df_csv_2 = load_csv_table(csv_file)
+    assert csv_calls["count"] == 1
+    assert len(df_csv_1) == 2 and len(df_csv_2) == 2
+
+    df_pq_1 = load_parquet_table(pq_file)
+    df_pq_2 = load_parquet_table(pq_file)
+    assert pq_calls["count"] == 1
+    assert len(df_pq_1) == 2 and len(df_pq_2) == 2
+
+    # 2. DataFrame copy isolation across retrievals
+    df_csv_1["views"] = -999
+    df_csv_1["injected_col"] = True
+    df_csv_3 = load_csv_table(csv_file)
+    assert csv_calls["count"] == 1
+    assert "injected_col" not in df_csv_3.columns
+    assert df_csv_3["views"].tolist() == [100, 200]
+
+    df_pq_1["views"] = -888
+    df_pq_3 = load_parquet_table(pq_file)
+    assert pq_calls["count"] == 1
+    assert df_pq_3["views"].tolist() == [100, 200]
+
+    # 3. File update on disk -> automatic invalidation and reload
+    pd.DataFrame({"post_id": ["P1", "P2", "P3"], "views": [100, 200, 300]}).to_csv(csv_file, index=False)
+    st_csv = csv_file.stat()
+    os.utime(csv_file, ns=(st_csv.st_atime_ns, st_csv.st_mtime_ns + 1_000_000))
+    df_csv_updated = load_csv_table(csv_file)
+    assert csv_calls["count"] == 2
+    assert len(df_csv_updated) == 3
+
+    pd.DataFrame({"post_id": ["P1", "P2", "P3"], "views": [100, 200, 300]}).to_parquet(pq_file, index=False)
+    st_pq = pq_file.stat()
+    os.utime(pq_file, ns=(st_pq.st_atime_ns, st_pq.st_mtime_ns + 1_000_000))
+    df_pq_updated = load_parquet_table(pq_file)
+    assert pq_calls["count"] == 2
+    assert len(df_pq_updated) == 3
+
+
+def test_shared_loader_json_caching_and_invalidation(tmp_path):
+    """JSON metadata loader must cache unchanged files and reload cleanly after updates."""
+    import json
+    import os
+    from app.components.data_loader import load_json_artifact
+
+    meta_file = tmp_path / "meta.json"
+    assert load_json_artifact(meta_file) == {}
+
+    meta_file.write_text(json.dumps({"version": 1, "accuracy": 0.91}), encoding="utf-8")
+    first = load_json_artifact(meta_file)
+    second = load_json_artifact(meta_file)
+    assert first == {"version": 1, "accuracy": 0.91}
+    assert second == first
+
+    meta_file.write_text(json.dumps({"version": 2, "accuracy": 0.94, "note": "updated"}), encoding="utf-8")
+    st_meta = meta_file.stat()
+    os.utime(meta_file, ns=(st_meta.st_atime_ns, st_meta.st_mtime_ns + 1_000_000))
+    updated = load_json_artifact(meta_file)
+    assert updated == {"version": 2, "accuracy": 0.94, "note": "updated"}
+
+
+def test_shared_resource_loaders_reuse_invalidate_and_stay_read_only(tmp_path, monkeypatch):
+    """Cached ML/backend resources must reuse across unchanged signatures, invalidate on artifact updates, and remain read-only."""
+    import os
+    import shutil
+    import pandas as pd
+    from app.components.data_loader import (
+        get_dashboard_experiment_performance,
+        get_dashboard_recommendation_priorities,
+        get_growth_dashboard_backend,
+        get_optimization_recommender,
+        get_relatability_classifier,
+        get_trend_forecaster,
+        get_virality_predictor,
+        load_ab_observations_dataset,
+        load_comments_dataset,
+        load_experiments_dataset,
+        load_posts_dataset,
+    )
+    from src.dashboard.growth_dashboard_backend import GrowthDashboardBackend
+
+    root = Path(__file__).resolve().parent.parent
+
+    # 1. Reuse across unchanged artifact signatures + verify read-only query safety
+    vp1 = get_virality_predictor(root_dir=root)
+    vp2 = get_virality_predictor(root_dir=root)
+    assert vp1 is vp2
+    pred_before = vp1.predict_pre_publication(pd.DataFrame([{
+        "platform": "instagram",
+        "content_type": "Reel",
+        "topic": "Social Anxiety",
+        "hook_type": "Visual Hook",
+        "duration_seconds": 30,
+        "posting_hour": 18,
+        "posting_day_of_week": "Sunday",
+        "follower_count": 35000,
+    }]))
+    pred_after = vp2.predict_pre_publication(pd.DataFrame([{
+        "platform": "instagram",
+        "content_type": "Reel",
+        "topic": "Social Anxiety",
+        "hook_type": "Visual Hook",
+        "duration_seconds": 30,
+        "posting_hour": 18,
+        "posting_day_of_week": "Sunday",
+        "follower_count": 35000,
+    }]))
+    assert pred_before.equals(pred_after)
+
+    rc1 = get_relatability_classifier(root_dir=root)
+    rc2 = get_relatability_classifier(root_dir=root)
+    assert rc1 is rc2
+    c_res1 = rc1.classify_comment("This hits way too close to home.")
+    c_res2 = rc2.classify_comment("This hits way too close to home.")
+    assert c_res1 == c_res2
+
+    tf1 = get_trend_forecaster(rolling_window=7)
+    tf2 = get_trend_forecaster(rolling_window=7)
+    assert tf1 is tf2
+
+    posts_df, _ = load_posts_dataset(root_dir=root)
+    comments_df, _ = load_comments_dataset(root_dir=root)
+    exp_df = load_experiments_dataset(root_dir=root)
+    obs_df = load_ab_observations_dataset(root_dir=root)
+
+    rec1 = get_optimization_recommender(
+        posts_df=posts_df,
+        comments_df=comments_df,
+        experiments_df=exp_df,
+        observations_df=obs_df,
+        root_dir=root,
+    )
+    rec2 = get_optimization_recommender(
+        posts_df=posts_df,
+        comments_df=comments_df,
+        experiments_df=exp_df,
+        observations_df=obs_df,
+        root_dir=root,
+    )
+    assert rec1 is rec2
+    posts_cols_before = list(rec1.posts_df.columns)
+    rep_a = rec1.generate_recommendations(platform="instagram", max_recommendations=5)
+    rep_b = rec2.generate_recommendations(platform="youtube", max_recommendations=5)
+    assert list(rec1.posts_df.columns) == posts_cols_before
+    assert rep_a.total_recommendations >= 0 and rep_b.total_recommendations >= 0
+
+    # 2. Invalidation when underlying source artifacts change on disk
+    isolated_root = tmp_path / "workspace"
+    (isolated_root / "data" / "processed").mkdir(parents=True)
+    (isolated_root / "data" / "sample").mkdir(parents=True)
+    (isolated_root / "models").mkdir(parents=True)
+
+    for rel in [
+        "data/processed/processed_posts.parquet",
+        "data/processed/processed_comments.parquet",
+        "data/processed/processed_ab_tests.parquet",
+        "data/sample/sample_posts.csv",
+        "data/sample/sample_experiments.csv",
+        "models/relatability_classifier.joblib",
+    ]:
+        shutil.copy2(root / rel, isolated_root / rel)
+
+    iso_clf_1 = get_relatability_classifier(root_dir=isolated_root)
+    iso_clf_2 = get_relatability_classifier(root_dir=isolated_root)
+    assert iso_clf_1 is iso_clf_2
+
+    iso_model = isolated_root / "models" / "relatability_classifier.joblib"
+    st_m = iso_model.stat()
+    os.utime(iso_model, ns=(st_m.st_atime_ns, st_m.st_mtime_ns + 2_000_000))
+    iso_clf_3 = get_relatability_classifier(root_dir=isolated_root)
+    assert iso_clf_3 is not iso_clf_1
+
+    backend_1 = get_growth_dashboard_backend(root_dir=isolated_root)
+    backend_2 = get_growth_dashboard_backend(root_dir=isolated_root)
+    assert backend_1 is backend_2
+
+    # Monkeypatching backend synthesis methods must bypass cached synthesis output
+    real_exp = get_dashboard_experiment_performance(backend_1)
+    assert len(real_exp["experiments"]) >= 1
+    monkeypatch.setattr(
+        GrowthDashboardBackend,
+        "calculate_experiment_performance",
+        lambda self: {"experiments": [], "forest_plot_data": pd.DataFrame()},
+    )
+    patched_exp = get_dashboard_experiment_performance(backend_1)
+    assert len(patched_exp["experiments"]) == 0
+
+    from dataclasses import replace
+
+    real_recs = get_dashboard_recommendation_priorities(backend_1)
+    assert real_recs.total_recommendations >= 1
+    monkeypatch.setattr(
+        GrowthDashboardBackend,
+        "calculate_recommendation_priorities",
+        lambda self: replace(real_recs, total_recommendations=0, recommendations=[]),
+    )
+    patched_recs = get_dashboard_recommendation_priorities(backend_1)
+    assert patched_recs.total_recommendations == 0
+
+    # Updating any source dataset invalidates GrowthDashboardBackend
+    iso_exp_csv = isolated_root / "data" / "sample" / "sample_experiments.csv"
+    st_e = iso_exp_csv.stat()
+    os.utime(iso_exp_csv, ns=(st_e.st_atime_ns, st_e.st_mtime_ns + 2_000_000))
+    backend_3 = get_growth_dashboard_backend(root_dir=isolated_root)
+    assert backend_3 is not backend_1
+
+    # Sequential distinct backend instances must never collide even if memory addresses are recycled
+    empty_workspace = tmp_path / "empty_workspace"
+    empty_workspace.mkdir()
+    del backend_1, backend_2, backend_3
+    empty_backend = GrowthDashboardBackend(root_dir=empty_workspace)
+    assert get_dashboard_experiment_performance(empty_backend)["experiments"] == []
+    assert get_dashboard_recommendation_priorities(empty_backend).total_recommendations == 0
+
+
+def test_page06_synthesis_cache_key_isolates_workspaces_and_invalidates_cleanly(tmp_path, monkeypatch):
+    """Page 06 synthesis caches must key on workspace/dataset/method signatures rather than id(backend)."""
+    from dataclasses import replace
+    import os
+    import shutil
+    import pandas as pd
+    from app.components.data_loader import (
+        _dashboard_backend_signature,
+        get_dashboard_experiment_performance,
+        get_dashboard_recommendation_priorities,
+    )
+    from src.dashboard.growth_dashboard_backend import GrowthDashboardBackend
+
+    root = Path(__file__).resolve().parent.parent
+
+    def _make_workspace(name: str, subset_exp_id: str) -> Path:
+        ws = tmp_path / name
+        (ws / "data" / "processed").mkdir(parents=True)
+        (ws / "data" / "sample").mkdir(parents=True)
+        for rel in [
+            "data/processed/processed_posts.parquet",
+            "data/processed/processed_comments.parquet",
+            "data/processed/processed_ab_tests.parquet",
+            "data/sample/sample_posts.csv",
+            "data/sample/sample_experiments.csv",
+        ]:
+            shutil.copy2(root / rel, ws / rel)
+        exp_df = pd.read_csv(ws / "data" / "sample" / "sample_experiments.csv")
+        exp_df[exp_df["experiment_id"] == subset_exp_id].to_csv(
+            ws / "data" / "sample" / "sample_experiments.csv", index=False
+        )
+        return ws
+
+    ws_a = _make_workspace("workspace_a", "EXP_001")
+    ws_b = _make_workspace("workspace_b", "EXP_002")
+
+    backend_a = GrowthDashboardBackend(root_dir=ws_a)
+    exp_a = get_dashboard_experiment_performance(backend_a)
+    recs_a = get_dashboard_recommendation_priorities(backend_a)
+    assert [e["experiment_id"] for e in exp_a["experiments"]] == ["EXP_001"]
+    assert recs_a.total_recommendations >= 1
+
+    # Drop backend_a before creating backend_b so CPython may reuse memory addresses
+    sig_a = _dashboard_backend_signature(backend_a)
+    del backend_a
+
+    backend_b = GrowthDashboardBackend(root_dir=ws_b)
+    sig_b = _dashboard_backend_signature(backend_b)
+    assert sig_a != sig_b
+
+    exp_b = get_dashboard_experiment_performance(backend_b)
+    recs_b = get_dashboard_recommendation_priorities(backend_b)
+    assert [e["experiment_id"] for e in exp_b["experiments"]] == ["EXP_002"]
+    assert recs_b.total_recommendations >= 1
+    assert [r.title for r in recs_b.recommendations] != [r.title for r in recs_a.recommendations]
+
+    # Equal-length in-memory DataFrames (when backing files are absent) must also produce distinct signatures
+    mem_ws = tmp_path / "mem_workspace"
+    mem_ws.mkdir()
+    mem_backend_1 = GrowthDashboardBackend(root_dir=mem_ws)
+    mem_backend_1.experiments_df = pd.DataFrame([{"experiment_id": "EXP_A", "val": 1}])
+    mem_backend_2 = GrowthDashboardBackend(root_dir=mem_ws)
+    mem_backend_2.experiments_df = pd.DataFrame([{"experiment_id": "EXP_B", "val": 2}])
+    assert _dashboard_backend_signature(mem_backend_1) != _dashboard_backend_signature(mem_backend_2)
+
+    # Updating a source dataset on disk in workspace_b invalidates cached synthesis results
+    exp_csv_b = ws_b / "data" / "sample" / "sample_experiments.csv"
+    full_exp_df = pd.read_csv(root / "data" / "sample" / "sample_experiments.csv")
+    full_exp_df.iloc[:2].to_csv(exp_csv_b, index=False)
+    st_b = exp_csv_b.stat()
+    os.utime(exp_csv_b, ns=(st_b.st_atime_ns, st_b.st_mtime_ns + 2_000_000))
+
+    backend_b_reloaded = GrowthDashboardBackend(root_dir=ws_b)
+    exp_b_updated = get_dashboard_experiment_performance(backend_b_reloaded)
+    assert len(exp_b_updated["experiments"]) == 2
+
+    # Both instance-level and class-level method monkeypatching must invalidate synthesis caches
+    monkeypatch.setattr(
+        backend_b_reloaded,
+        "calculate_experiment_performance",
+        lambda: {"experiments": [{"experiment_id": "INSTANCE_PATCH"}], "forest_plot_data": pd.DataFrame()},
+    )
+    assert [e["experiment_id"] for e in get_dashboard_experiment_performance(backend_b_reloaded)["experiments"]] == ["INSTANCE_PATCH"]
+
+    monkeypatch.setattr(
+        GrowthDashboardBackend,
+        "calculate_recommendation_priorities",
+        lambda self: replace(recs_b, total_recommendations=0, recommendations=[]),
+    )
+    assert get_dashboard_recommendation_priorities(backend_b_reloaded).total_recommendations == 0
+
+
+def test_virality_predictor_fallback_invalidates_when_fallback_data_changes(tmp_path):
+    """When serialized model artifacts are absent, changing fallback posts data must train a fresh predictor."""
+    import os
+    import pandas as pd
+    from app.components.data_loader import get_virality_predictor, load_posts_dataset
+
+    root = Path(__file__).resolve().parent.parent
+    base_posts = pd.read_parquet(root / "data" / "processed" / "processed_posts.parquet")
+
+    missing_model = tmp_path / "absent_models" / "virality_predictor.joblib"
+    missing_meta = tmp_path / "absent_models" / "virality_predictor_metadata.json"
+    fallback_pq = tmp_path / "fallback_posts.parquet"
+    base_posts.to_parquet(fallback_pq, index=False)
+
+    df_fb_1, _ = load_posts_dataset(fallback_pq, sample_path=None)
+    pred_1 = get_virality_predictor(
+        model_path=missing_model,
+        meta_path=missing_meta,
+        fallback_posts_df=df_fb_1,
+        fallback_posts_path=fallback_pq,
+        save_if_trained=False,
+    )
+    # Same absent model files + unchanged fallback data -> reuses cached fallback predictor
+    pred_2 = get_virality_predictor(
+        model_path=missing_model,
+        meta_path=missing_meta,
+        fallback_posts_df=df_fb_1,
+        fallback_posts_path=fallback_pq,
+        save_if_trained=False,
+    )
+    assert pred_1 is pred_2
+    assert not missing_model.exists()
+
+    # Mutate fallback dataset on disk while model files remain absent -> must retrain fresh predictor
+    modified_posts = base_posts.copy()
+    modified_posts["views"] = modified_posts["views"] * 2
+    modified_posts.to_parquet(fallback_pq, index=False)
+    st_fb = fallback_pq.stat()
+    os.utime(fallback_pq, ns=(st_fb.st_atime_ns, st_fb.st_mtime_ns + 2_000_000))
+
+    df_fb_2, _ = load_posts_dataset(fallback_pq, sample_path=None)
+    pred_3 = get_virality_predictor(
+        model_path=missing_model,
+        meta_path=missing_meta,
+        fallback_posts_df=df_fb_2,
+        fallback_posts_path=fallback_pq,
+        save_if_trained=False,
+    )
+    assert pred_3 is not pred_1
+    assert not missing_model.exists()
+
+
+def test_home_and_pages_01_to_07_smoke_and_rerun_parity():
+    """Home and Pages 01–07 must render cleanly and preserve exact outputs across widget reruns."""
+    from streamlit.testing.v1 import AppTest
+
+    root = Path(__file__).resolve().parent.parent
+
+    # Home view
+    at_home = AppTest.from_file(str(root / "app" / "streamlit_app.py"), default_timeout=30)
+    at_home.run()
+    assert len(at_home.exception) == 0
+
+    # Page 01 + widget rerun
+    at1 = AppTest.from_file(str(root / "app" / "pages" / "01_Content_Performance.py"), default_timeout=30)
+    at1.run()
+    assert len(at1.exception) == 0
+    if at1.selectbox:
+        opts = at1.selectbox[0].options
+        if len(opts) > 1:
+            at1.selectbox[0].set_value(opts[1]).run()
+            assert len(at1.exception) == 0
+
+    # Page 02
+    at2 = AppTest.from_file(str(root / "app" / "pages" / "02_Virality_Prediction.py"), default_timeout=30)
+    at2.run()
+    assert len(at2.exception) == 0
+
+    # Page 04
+    at4 = AppTest.from_file(str(root / "app" / "pages" / "04_AB_Testing.py"), default_timeout=30)
+    at4.run()
+    assert len(at4.exception) == 0
+
+    # Page 05 + filter rerun
+    at5 = AppTest.from_file(str(root / "app" / "pages" / "05_Recommendations.py"), default_timeout=30)
+    at5.run()
+    assert len(at5.exception) == 0
+    if at5.selectbox:
+        opts5 = at5.selectbox[0].options
+        if len(opts5) > 1:
+            at5.selectbox[0].set_value(opts5[1]).run()
+            assert len(at5.exception) == 0
+
+    # Page 06 + sidebar platform filter rerun
+    at6 = AppTest.from_file(str(root / "app" / "pages" / "06_Growth_Dashboard.py"), default_timeout=30)
+    at6.run()
+    assert len(at6.exception) == 0
+    if at6.sidebar.selectbox:
+        plat_opts = at6.sidebar.selectbox[0].options
+        if len(plat_opts) > 1:
+            at6.sidebar.selectbox[0].set_value(plat_opts[1]).run()
+            assert len(at6.exception) == 0
+
+    # Page 07 + horizon rerun parity
+    at7 = AppTest.from_file(str(root / "app" / "pages" / "07_Trend_Forecasting.py"), default_timeout=30)
+    at7.run()
+    assert len(at7.exception) == 0
+    at7.run()
+    assert len(at7.exception) == 0
+
+
+def test_root_entrypoint_clean_checkout_bootstrap_failure_surfaces_error_and_stops(tmp_path):
+    """When source inputs are missing cleanly, streamlit_app.py must surface error/exception and stop pre-navigation."""
+    import os
+    import shutil
+    import subprocess
+    import sys
+
+    root = Path(__file__).resolve().parent.parent
+    for rel_dir in ["src", "scripts", "app", "utils", "assets", ".streamlit"]:
+        shutil.copytree(
+            root / rel_dir,
+            tmp_path / rel_dir,
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"),
+        )
+    shutil.copy2(root / "streamlit_app.py", tmp_path / "streamlit_app.py")
+    (tmp_path / "data" / "sample").mkdir(parents=True, exist_ok=True)
+    for csv_path in (root / "data" / "sample").glob("*.csv"):
+        if csv_path.name != "sample_comments.csv":
+            shutil.copy2(csv_path, tmp_path / "data" / "sample" / csv_path.name)
+
+    env = os.environ.copy()
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
+    env.pop("PYTHONPATH", None)
+
+    fail_script = "\n".join([
+        "from pathlib import Path",
+        "from streamlit.testing.v1 import AppTest",
+        "root = Path.cwd()",
+        "at = AppTest.from_file(str(root / 'streamlit_app.py'), default_timeout=30)",
+        "at.run()",
+        "assert len(at.error) >= 1",
+        "assert 'sample_comments.csv' in at.error[0].value",
+        "assert len(at.exception) >= 1",
+        "assert 'sample_comments.csv' in str(at.exception[0].message)",
+        "rendered_html = '\\n'.join(m.value for m in at.markdown)",
+        "assert 'MODULE 0' not in rendered_html",
+        "assert 'Benchmark Dataset Overview' not in rendered_html",
+        "assert not any('SocialPulse v1.0' in c.value for c in at.sidebar.caption)",
+    ])
+
+    probe = subprocess.run(
+        [sys.executable, "-B", "-c", fail_script],
+        cwd=str(tmp_path),
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert probe.returncode == 0, probe.stderr or probe.stdout
+    assert not (tmp_path / "data" / "processed").exists()
+    assert not (tmp_path / "database" / "social_analytics.db").exists()
+    assert not (tmp_path / "models").exists()
+
+
+def test_clean_checkout_bootstrapped_via_root_serves_all_nine_views_and_avoids_page2_fallback(tmp_path):
+    """After clean-checkout bootstrap via streamlit_app.py, ViralityPredictor loads serialized model and all 9 views run cleanly."""
+    import os
+    import shutil
+    import subprocess
+    import sys
+
+    root = Path(__file__).resolve().parent.parent
+    for rel_dir in ["src", "scripts", "app", "utils", "assets", ".streamlit"]:
+        shutil.copytree(
+            root / rel_dir,
+            tmp_path / rel_dir,
+            ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"),
+        )
+    shutil.copy2(root / "streamlit_app.py", tmp_path / "streamlit_app.py")
+    (tmp_path / "data" / "sample").mkdir(parents=True, exist_ok=True)
+    for csv_path in (root / "data" / "sample").glob("*.csv"):
+        shutil.copy2(csv_path, tmp_path / "data" / "sample" / csv_path.name)
+    (tmp_path / "models").mkdir(parents=True, exist_ok=True)
+    for meta_path in (root / "models").glob("*_metadata.json"):
+        shutil.copy2(meta_path, tmp_path / "models" / meta_path.name)
+
+    env = os.environ.copy()
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
+    env.pop("PYTHONPATH", None)
+
+    smoke_script = "\n".join([
+        "from pathlib import Path",
+        "from streamlit.testing.v1 import AppTest",
+        "root = Path.cwd()",
+        "at_root = AppTest.from_file(str(root / 'streamlit_app.py'), default_timeout=60)",
+        "at_root.run()",
+        "assert len(at_root.exception) == 0, [e.message for e in at_root.exception]",
+        "assert len(at_root.error) == 0, [e.value for e in at_root.error]",
+        "vir_model = root / 'models' / 'virality_predictor.joblib'",
+        "vir_meta = root / 'models' / 'virality_predictor_metadata.json'",
+        "assert vir_model.exists() and vir_meta.exists()",
+        "mtime_before = (vir_model.stat().st_mtime_ns, vir_meta.read_bytes())",
+        "at_p2 = AppTest.from_file(str(root / 'app' / 'pages' / '02_Virality_Prediction.py'), default_timeout=30)",
+        "at_p2.run()",
+        "assert len(at_p2.exception) == 0, [e.message for e in at_p2.exception]",
+        "assert (vir_model.stat().st_mtime_ns, vir_meta.read_bytes()) == mtime_before",
+        "views = [",
+        "    'app/streamlit_app.py',",
+        "    'app/pages/01_Content_Performance.py',",
+        "    'app/pages/03_Sentiment_Analysis.py',",
+        "    'app/pages/04_AB_Testing.py',",
+        "    'app/pages/05_Recommendations.py',",
+        "    'app/pages/06_Growth_Dashboard.py',",
+        "    'app/pages/07_Trend_Forecasting.py',",
+        "]",
+        "for rel in views:",
+        "    v = AppTest.from_file(str(root / rel), default_timeout=30)",
+        "    v.run()",
+        "    assert len(v.exception) == 0, f'{rel}: {[e.message for e in v.exception]}'",
+        "    assert len(v.error) == 0, f'{rel} errors: {[e.value for e in v.error]}'",
+        "    assert all('not found' not in w.value.lower() and 'sample offline benchmark' not in w.value.lower() for w in v.warning), f'{rel} unexpected warning: {[w.value for w in v.warning]}'",
+    ])
+
+    probe = subprocess.run(
+        [sys.executable, "-B", "-c", smoke_script],
+        cwd=str(tmp_path),
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert probe.returncode == 0, probe.stderr or probe.stdout
+
+
+def test_data_loader_in_memory_override_and_fallback_lock_regressions(tmp_path, monkeypatch):
+    """Verify cache-key safety for in-memory DF overrides and lock-guarded deterministic fallback saves."""
+    import json
+    import shutil
+    import pandas as pd
+    import app.components.data_loader as dl
+    from app.components.data_loader import (
+        _dashboard_backend_signature,
+        get_dashboard_experiment_performance,
+        get_optimization_recommender,
+        get_virality_predictor,
+    )
+    from src.dashboard.growth_dashboard_backend import GrowthDashboardBackend
+
+    root = Path(__file__).resolve().parent.parent
+
+    # 1. Passing distinct in-memory DataFrames to get_optimization_recommender while disk artifacts exist
+    p_df = pd.read_parquet(root / "data" / "processed" / "processed_posts.parquet")
+    c_df = pd.read_parquet(root / "data" / "processed" / "processed_comments.parquet")
+    e_df = pd.read_csv(root / "data" / "sample" / "sample_experiments.csv")
+    o_df = pd.read_parquet(root / "data" / "processed" / "processed_ab_tests.parquet")
+
+    e_one = e_df[e_df["experiment_id"] == "EXP_001"].copy()
+    e_two = e_df[e_df["experiment_id"] == "EXP_002"].copy()
+    rec_1 = get_optimization_recommender(
+        posts_df=p_df,
+        comments_df=c_df,
+        experiments_df=e_one,
+        observations_df=o_df,
+        root_dir=root,
+    )
+    rec_2 = get_optimization_recommender(
+        posts_df=p_df,
+        comments_df=c_df,
+        experiments_df=e_two,
+        observations_df=o_df,
+        root_dir=root,
+    )
+    assert rec_1 is not rec_2
+    assert set(rec_1.experiments_df["experiment_id"]) == {"EXP_001"}
+    assert set(rec_2.experiments_df["experiment_id"]) == {"EXP_002"}
+
+    # 2. Mutating backend.experiments_df in-memory when disk backing files exist must invalidate Page 06 cache
+    ws = tmp_path / "disk_ws"
+    (ws / "data" / "processed").mkdir(parents=True)
+    (ws / "data" / "sample").mkdir(parents=True)
+    for rel in [
+        "data/processed/processed_posts.parquet",
+        "data/processed/processed_comments.parquet",
+        "data/processed/processed_ab_tests.parquet",
+        "data/sample/sample_experiments.csv",
+    ]:
+        shutil.copy2(root / rel, ws / rel)
+
+    backend = GrowthDashboardBackend(root_dir=ws)
+    sig_before = _dashboard_backend_signature(backend)
+    perf_before = get_dashboard_experiment_performance(backend)
+    assert len(perf_before["experiments"]) >= 2
+
+    backend.experiments_df = backend.experiments_df[backend.experiments_df["experiment_id"] == "EXP_001"].copy()
+    sig_after = _dashboard_backend_signature(backend)
+    assert sig_before != sig_after
+    perf_after = get_dashboard_experiment_performance(backend)
+    assert [e["experiment_id"] for e in perf_after["experiments"]] == ["EXP_001"]
+
+    # 3. ViralityPredictor fallback save must acquire build lock and omit volatile timestamps
+    lock_events = []
+    orig_get_build_lock = dl.get_build_lock
+
+    class _RecordingLock:
+        def __init__(self, inner):
+            self._inner = inner
+
+        def __enter__(self):
+            lock_events.append("enter")
+            return self._inner.__enter__()
+
+        def __exit__(self, exc_type, exc_val, exc_tb):
+            lock_events.append("exit")
+            return self._inner.__exit__(exc_type, exc_val, exc_tb)
+
+    monkeypatch.setattr(dl, "get_build_lock", lambda r: _RecordingLock(orig_get_build_lock(r)))
+
+    fb_ws = tmp_path / "fb_ws"
+    m_path = fb_ws / "models" / "virality_predictor.joblib"
+    j_path = fb_ws / "models" / "virality_predictor_metadata.json"
+    _ = get_virality_predictor(
+        model_path=m_path,
+        meta_path=j_path,
+        fallback_posts_df=p_df,
+        save_if_trained=True,
+    )
+    assert lock_events == ["enter", "exit"]
+    assert m_path.exists() and j_path.exists()
+    saved_meta = json.loads(j_path.read_text(encoding="utf-8"))
+    assert "trained_at" not in saved_meta
+    assert saved_meta["metadata_reproducibility"]["artifact_type"] == "deterministic_model_metadata"
+
+
+def test_page02_dynamic_residual_band_caption():
+    """Verify Page 02 uncertainty caption displays dynamic empirical_residual_q95 from metadata."""
+    import json
+    from streamlit.testing.v1 import AppTest
+
+    root = Path(__file__).resolve().parent.parent
+    meta = json.loads((root / "models" / "virality_predictor_metadata.json").read_text(encoding="utf-8"))
+    expected_q95 = f"±{meta['empirical_residual_q95']:.2f} points"
+
+    at = AppTest.from_file(str(root / "app" / "pages" / "02_Virality_Prediction.py"), default_timeout=30)
+    at.run()
+    assert len(at.exception) == 0
+    assert len(at.button) >= 1
+    at.button[0].click().run()
+    assert len(at.exception) == 0
+    captions = "\n".join(c.value for c in at.caption)
+    assert "±50.2 points" not in captions
+    assert expected_q95 in captions
+
+
+def test_external_dataset_switcher_0_1_multiple_and_fail_loud_corruption(tmp_path):
+    """Verify UI dataset discovery/switching across 0, 1, multiple datasets and fail-loud handling on corrupt inputs."""
+    import json
+    import shutil
+    import pandas as pd
+    import pytest
+    from streamlit.testing.v1 import AppTest
+    from app.components.data_loader import (
+        DatasetLoadError,
+        SYNTHETIC_DEMO_DATASET_ID,
+        list_available_datasets,
+        load_selected_posts_dataset,
+    )
+
+    root = Path(__file__).resolve().parent.parent
+
+    # --- 1. Zero external datasets workspace ---
+    ws0 = tmp_path / "ws_zero_ext"
+    (ws0 / "data" / "sample").mkdir(parents=True)
+    shutil.copy2(root / "data" / "sample" / "sample_posts.csv", ws0 / "data" / "sample" / "sample_posts.csv")
+    found0 = list_available_datasets(root_dir=ws0)
+    assert [d["dataset_id"] for d in found0] == [SYNTHETIC_DEMO_DATASET_ID]
+
+    # --- 2. One external dataset workspace ---
+    ws1 = tmp_path / "ws_one_ext"
+    (ws1 / "data" / "sample").mkdir(parents=True)
+    shutil.copy2(root / "data" / "sample" / "sample_posts.csv", ws1 / "data" / "sample" / "sample_posts.csv")
+    alpha_dir = ws1 / "data" / "processed" / "external" / "alpha_corpus"
+    alpha_dir.mkdir(parents=True)
+    pd.DataFrame([
+        {
+            "post_id": "A1",
+            "platform": "tiktok",
+            "timestamp": "2026-09-01T10:00:00Z",
+            "content_type": "Short Video",
+            "topic": "Focus",
+            "views": 1000,
+            "likes": 100,
+            "comments_count": 10,
+            "shares": 5,
+            "saves": pd.NA,
+            "collect_count": 8,
+            "provenance": "real_public_data",
+        }
+    ]).to_parquet(alpha_dir / "posts.parquet", index=False)
+    (alpha_dir / "dataset_meta.json").write_text(
+        json.dumps({
+            "dataset_id": "alpha_corpus",
+            "display_name": "Alpha Corpus",
+            "provenance": "real_public_data",
+            "platforms": ["tiktok"],
+            "tables": ["posts"],
+            "row_counts": {"posts": 1},
+        }),
+        encoding="utf-8",
+    )
+    found1 = list_available_datasets(root_dir=ws1)
+    assert [d["dataset_id"] for d in found1] == [SYNTHETIC_DEMO_DATASET_ID, "alpha_corpus"]
+    df_alpha, meta_alpha = load_selected_posts_dataset("alpha_corpus", root_dir=ws1)
+    assert len(df_alpha) == 1
+    assert meta_alpha["dataset_id"] == "alpha_corpus"
+
+    # --- 3. Corrupt parquet & unknown dataset_id fail loudly without falling back ---
+    bad_dir = ws1 / "data" / "processed" / "external" / "broken_corpus"
+    bad_dir.mkdir(parents=True)
+    (bad_dir / "posts.parquet").write_bytes(b"NOT_A_VALID_PARQUET_HEADER")
+    (bad_dir / "dataset_meta.json").write_text(
+        json.dumps({
+            "dataset_id": "broken_corpus",
+            "display_name": "Broken Corpus",
+            "provenance": "real_public_data",
+            "platforms": ["tiktok"],
+            "tables": ["posts"],
+            "row_counts": {"posts": 5},
+        }),
+        encoding="utf-8",
+    )
+    with pytest.raises(DatasetLoadError):
+        load_selected_posts_dataset("broken_corpus", root_dir=ws1)
+    with pytest.raises(DatasetLoadError):
+        load_selected_posts_dataset("totally_unknown_dataset_id", root_dir=ws1)
+
+    # Corrupt dataset selected in Home UI and subpages must surface st.error and halt without falling back to synthetic KPIs
+    for bad_id in ("totally_unknown_dataset_id", "synthetic_demo/../etc"):
+        at_bad = AppTest.from_file(str(root / "app" / "streamlit_app.py"), default_timeout=30)
+        at_bad.session_state["socialpulse_dataset_id"] = bad_id
+        at_bad.run()
+        assert len(at_bad.exception) == 0
+        assert len(at_bad.error) >= 1
+        rendered_html = "\n".join(m.value for m in at_bad.markdown)
+        assert "Benchmark Dataset Overview" not in rendered_html
+
+    for rel_sub in (
+        "app/pages/01_Content_Performance.py",
+        "app/pages/02_Virality_Prediction.py",
+        "app/pages/03_Sentiment_Analysis.py",
+        "app/pages/04_AB_Testing.py",
+        "app/pages/05_Recommendations.py",
+        "app/pages/06_Growth_Dashboard.py",
+        "app/pages/07_Trend_Forecasting.py",
+    ):
+        at_sub_bad = AppTest.from_file(str(root / rel_sub), default_timeout=30)
+        at_sub_bad.session_state["socialpulse_dataset_id"] = "totally_unknown_dataset_id"
+        at_sub_bad.run()
+        assert len(at_sub_bad.exception) == 0, f"{rel_sub} threw uncaught exception on unknown dataset"
+        assert len(at_sub_bad.error) >= 1, f"{rel_sub} failed to display st.error on unknown dataset"
+
+    # --- 4. Multiple prepared external corpora on UI views if present in repo workspace ---
+    ext_root = root / "data" / "processed" / "external"
+    if (ext_root / "tiktok_engagement_200k" / "posts.parquet").is_file():
+        for rel in (
+            "app/streamlit_app.py",
+            "app/pages/01_Content_Performance.py",
+            "app/pages/02_Virality_Prediction.py",
+            "app/pages/05_Recommendations.py",
+            "app/pages/06_Growth_Dashboard.py",
+            "app/pages/07_Trend_Forecasting.py",
+        ):
+            at_tk = AppTest.from_file(str(root / rel), default_timeout=45)
+            at_tk.session_state["socialpulse_dataset_id"] = "tiktok_engagement_200k"
+            at_tk.run()
+            assert len(at_tk.exception) == 0, f"{rel} failed on tiktok_engagement_200k"
+            assert len(at_tk.error) == 0, f"{rel} errored on tiktok_engagement_200k"
+
+    if (ext_root / "zenodo_sponsored_unsponsored_ig" / "posts.parquet").is_file():
+        at_ab = AppTest.from_file(str(root / "app" / "pages" / "04_AB_Testing.py"), default_timeout=45)
+        at_ab.session_state["socialpulse_dataset_id"] = "zenodo_sponsored_unsponsored_ig"
+        at_ab.run()
+        assert len(at_ab.exception) == 0
+        assert len(at_ab.error) == 0
+        warn_text = "\n".join(w.value for w in at_ab.warning)
+        assert "is_causal=False" in warn_text
+
+        # Cross-sectional corpus on Page 07 must gracefully report unavailable time series without error
+        at_ts = AppTest.from_file(str(root / "app" / "pages" / "07_Trend_Forecasting.py"), default_timeout=30)
+        at_ts.session_state["socialpulse_dataset_id"] = "zenodo_sponsored_unsponsored_ig"
+        at_ts.run()
+        assert len(at_ts.exception) == 0
+        assert len(at_ts.error) == 0
+        assert len(at_ts.info) >= 1
+
+    if (ext_root / "zenodo_lokananta_comments_ig" / "comments.parquet").is_file():
+        at_nlp = AppTest.from_file(str(root / "app" / "pages" / "03_Sentiment_Analysis.py"), default_timeout=30)
+        at_nlp.session_state["socialpulse_dataset_id"] = "zenodo_lokananta_comments_ig"
+        at_nlp.run()
+        assert len(at_nlp.exception) == 0
+        assert len(at_nlp.error) == 0

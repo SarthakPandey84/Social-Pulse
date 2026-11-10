@@ -1,5 +1,6 @@
 """Tests for scripts/build_all_artifacts.py: clean build, idempotency, and strict failure guards."""
 
+import concurrent.futures
 from contextlib import closing
 from datetime import datetime
 import hashlib
@@ -10,6 +11,7 @@ import shutil
 import sqlite3
 import subprocess
 import sys
+import threading
 import time
 
 import pandas as pd
@@ -346,4 +348,210 @@ def test_tracked_model_metadata_is_byte_reproducible_while_preserving_truthful_p
     assert datetime.fromisoformat(prov_2["nlp_model_trained_at_utc"]) > datetime.fromisoformat(prov_1["nlp_model_trained_at_utc"])
     assert prov_1["source_dataset_sha256"] == prov_2["source_dataset_sha256"]
     assert "sample_posts.csv" in prov_1["source_dataset_sha256"]
+
+
+def _copy_tracked_clean_checkout(target_root: Path) -> None:
+    """Copy clean tracked files mirroring a fresh GitHub checkout without generated artifacts."""
+    _copy_clean_app_tree(target_root)
+    models_dir = target_root / "models"
+    models_dir.mkdir(parents=True, exist_ok=True)
+    for meta_file in (REPO_ROOT / "models").glob("*_metadata.json"):
+        shutil.copy2(meta_file, models_dir / meta_file.name)
+
+
+def test_clean_checkout_root_entrypoint_bootstrap_and_full_page_unlock(tmp_path: Path):
+    """Root streamlit_app.py must auto-build artifacts once from clean checkout and unblock all pages."""
+    _copy_tracked_clean_checkout(tmp_path)
+
+    assert not (tmp_path / "data" / "processed").exists()
+    assert not (tmp_path / "database" / "social_analytics.db").exists()
+    assert not (tmp_path / "models" / "virality_predictor.joblib").exists()
+    assert not (tmp_path / "models" / "relatability_classifier.joblib").exists()
+    assert not (tmp_path / "models" / "build_provenance.json").exists()
+
+    before_vir_meta = (tmp_path / "models" / "virality_predictor_metadata.json").read_bytes()
+    before_nlp_meta = (tmp_path / "models" / "relatability_metadata.json").read_bytes()
+
+    env = os.environ.copy()
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
+    env.pop("PYTHONPATH", None)
+
+    probe_script = "\n".join([
+        "from pathlib import Path",
+        "from streamlit.testing.v1 import AppTest",
+        "from scripts.build_all_artifacts import verify_generated_artifacts",
+        "root = Path.cwd()",
+        "at = AppTest.from_file(str(root / 'streamlit_app.py'), default_timeout=60)",
+        "at.run()",
+        "assert len(at.exception) == 0, [e.message for e in at.exception]",
+        "assert len(at.error) == 0, [e.value for e in at.error]",
+        "at.run()",
+        "assert len(at.exception) == 0, [e.message for e in at.exception]",
+        "verify_generated_artifacts(root)",
+        "views = ['streamlit_app.py', 'app/streamlit_app.py'] + sorted(str(p.relative_to(root)) for p in (root / 'app' / 'pages').glob('*.py') if p.name != '__init__.py')",
+        "assert len(views) == 9",
+        "for rel in views:",
+        "    v = AppTest.from_file(str(root / rel), default_timeout=45)",
+        "    v.run()",
+        "    assert len(v.exception) == 0, f'{rel} exceptions: {[e.message for e in v.exception]}'",
+        "    assert len(v.error) == 0, f'{rel} errors: {[e.value for e in v.error]}'",
+    ])
+
+    probe = subprocess.run(
+        [sys.executable, "-B", "-c", probe_script],
+        cwd=str(tmp_path),
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert probe.returncode == 0, probe.stderr or probe.stdout
+
+    assert verify_generated_artifacts(tmp_path)["sqlite_latest_posts_rows"] == 120
+    assert (tmp_path / "models" / "virality_predictor_metadata.json").read_bytes() == before_vir_meta
+    assert (tmp_path / "models" / "relatability_metadata.json").read_bytes() == before_nlp_meta
+
+
+def test_ensure_artifacts_ready_idempotent_without_rewrites(tmp_path: Path, monkeypatch):
+    """Repeated ensure_artifacts_ready() calls must build once and never rewrite valid outputs."""
+    from app.components import data_loader
+
+    _copy_tracked_clean_checkout(tmp_path)
+    build_calls = []
+    real_build = data_loader.build_all_artifacts
+
+    def counting_build(*args, **kwargs):
+        build_calls.append(kwargs.get("root_dir"))
+        return real_build(*args, **kwargs)
+
+    monkeypatch.setattr(data_loader, "build_all_artifacts", counting_build)
+
+    first = data_loader.ensure_artifacts_ready(tmp_path)
+    assert first["built"] is True
+    assert first["status"] == "built"
+    assert len(build_calls) == 1
+
+    tracked_files = [
+        tmp_path / "models" / "virality_predictor_metadata.json",
+        tmp_path / "models" / "relatability_metadata.json",
+    ]
+    before_meta_bytes = {p: p.read_bytes() for p in tracked_files}
+
+    monitored_paths = [
+        tmp_path / rel for rel in data_loader.REQUIRED_ARTIFACT_RELATIVE_PATHS
+    ] + [tmp_path / "models" / "build_provenance.json"]
+    before_stats = {p: (p.stat().st_mtime_ns, p.stat().st_size) for p in monitored_paths}
+
+    second = data_loader.ensure_artifacts_ready(tmp_path)
+    third = data_loader.ensure_artifacts_ready(tmp_path)
+
+    assert second["built"] is False
+    assert second["status"] == "ready"
+    assert third["built"] is False
+    assert third["status"] == "ready"
+    assert len(build_calls) == 1
+
+    for p, expected_bytes in before_meta_bytes.items():
+        assert p.read_bytes() == expected_bytes
+    for p, expected_stat in before_stats.items():
+        assert (p.stat().st_mtime_ns, p.stat().st_size) == expected_stat
+
+
+def test_ensure_artifacts_ready_detects_missing_corrupt_and_failed_builds(tmp_path: Path, monkeypatch):
+    """Missing/corrupted generated artifacts must trigger rebuild; failed builds must not cache ready."""
+    from app.components import data_loader
+
+    _copy_tracked_clean_checkout(tmp_path)
+    build_calls = []
+    real_build = data_loader.build_all_artifacts
+
+    def counting_build(*args, **kwargs):
+        build_calls.append("build")
+        return real_build(*args, **kwargs)
+
+    monkeypatch.setattr(data_loader, "build_all_artifacts", counting_build)
+
+    assert data_loader.ensure_artifacts_ready(tmp_path)["built"] is True
+    assert len(build_calls) == 1
+
+    # 1. Missing required model file -> detects and rebuilds
+    nlp_model = tmp_path / "models" / "relatability_classifier.joblib"
+    nlp_model.unlink()
+    rebuilt_missing = data_loader.ensure_artifacts_ready(tmp_path)
+    assert rebuilt_missing["built"] is True
+    assert len(build_calls) == 2
+    assert nlp_model.exists() and nlp_model.stat().st_size > 0
+
+    # 2. Invalid/corrupted Parquet schema -> detects and repairs cleanly
+    cmt_pq = tmp_path / "data" / "processed" / "processed_comments.parquet"
+    df_bad = pd.read_parquet(cmt_pq).drop(columns=["sentiment_score"])
+    df_bad.to_parquet(cmt_pq, index=False)
+    rebuilt_corrupt = data_loader.ensure_artifacts_ready(tmp_path)
+    assert rebuilt_corrupt["built"] is True
+    assert len(build_calls) == 3
+    assert "sentiment_score" in pd.read_parquet(cmt_pq).columns
+
+    # 3. Failed build -> raises without marking workspace ready on repeated calls
+    nlp_model.unlink()
+
+    def failing_build(*args, **kwargs):
+        raise RuntimeError("simulated build crash")
+
+    monkeypatch.setattr(data_loader, "build_all_artifacts", failing_build)
+    with pytest.raises(RuntimeError, match="simulated build crash"):
+        data_loader.ensure_artifacts_ready(tmp_path)
+    with pytest.raises(RuntimeError, match="simulated build crash"):
+        data_loader.ensure_artifacts_ready(tmp_path)
+    assert not nlp_model.exists()
+
+    # Restoring builder completes cleanly
+    monkeypatch.setattr(data_loader, "build_all_artifacts", counting_build)
+    recovered = data_loader.ensure_artifacts_ready(tmp_path)
+    assert recovered["built"] is True
+    assert len(build_calls) == 4
+    verify_generated_artifacts(tmp_path)
+
+
+def test_ensure_artifacts_ready_concurrent_callers_execute_single_build(tmp_path: Path, monkeypatch):
+    """Concurrent calls to ensure_artifacts_ready() against one root must serialize to one build."""
+    from app.components import data_loader
+
+    _copy_tracked_clean_checkout(tmp_path)
+    real_build = data_loader.build_all_artifacts
+
+    state_guard = threading.Lock()
+    state = {"active": 0, "max_active": 0, "total": 0}
+
+    def synchronized_counting_build(*args, **kwargs):
+        with state_guard:
+            state["active"] += 1
+            state["total"] += 1
+            state["max_active"] = max(state["max_active"], state["active"])
+        try:
+            return real_build(*args, **kwargs)
+        finally:
+            with state_guard:
+                state["active"] -= 1
+
+    monkeypatch.setattr(data_loader, "build_all_artifacts", synchronized_counting_build)
+
+    worker_count = 6
+    barrier = threading.Barrier(worker_count)
+
+    def _worker():
+        barrier.wait(timeout=10)
+        return data_loader.ensure_artifacts_ready(tmp_path)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=worker_count) as pool:
+        futures = [pool.submit(_worker) for _ in range(worker_count)]
+        results = [fut.result(timeout=60) for fut in futures]
+
+    assert len(results) == worker_count
+    assert state["max_active"] == 1
+    assert state["total"] == 1
+    assert sum(1 for r in results if r["built"]) == 1
+    assert sum(1 for r in results if not r["built"]) == worker_count - 1
+    assert verify_generated_artifacts(tmp_path)["sqlite_posts_rows"] == 121
+    with closing(sqlite3.connect(tmp_path / "database" / "social_analytics.db")) as conn:
+        assert int(conn.execute("SELECT COUNT(*) FROM posts").fetchone()[0]) == 121
+        assert int(conn.execute("SELECT COUNT(*) FROM latest_posts").fetchone()[0]) == 120
 

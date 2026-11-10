@@ -1,2 +1,2 @@
-"""Test suite package for Unlox."""
+"""Test suite package for SocialPulse."""
 

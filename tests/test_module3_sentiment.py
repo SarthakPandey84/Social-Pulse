@@ -294,3 +294,157 @@ def test_contrastive_first_person_vs_experiential_relatability(classifier):
     diag_tech = classifier.classify_comment(tech_fp)
     assert diag_tech["relatability_label"] == RelatabilityLabel.NEUTRAL.value
 
+
+# --- 14. Migrated Module 3 Diagnostic Edge Cases ---
+
+@pytest.mark.parametrize(
+    "text,expected_valid,expected_lang,expected_status",
+    [
+        ("So true!", True, "en", ClassificationStatus.SUCCESS),
+        ("Great job!", True, "en", ClassificationStatus.SUCCESS),
+        ("The cinematography has a wonderful joie de vivre and aesthetic!", True, "en", ClassificationStatus.SUCCESS),
+        ("Bro this is so true yaar, mera bhi same problem hai", False, "non-en", ClassificationStatus.UNSUPPORTED_LANGUAGE),
+    ],
+)
+def test_migrated_language_and_loanword_diagnostics(
+    preprocessor, text, expected_valid, expected_lang, expected_status
+):
+    """Verify short English phrases, foreign loanwords, and mixed Hindi-English diagnostic edge cases."""
+    res = preprocessor.preprocess(text)
+    assert res.is_valid is expected_valid
+    assert res.language == expected_lang
+    assert res.status == expected_status
+
+
+@pytest.mark.parametrize(
+    "text,expected_label",
+    [
+        ("Oh sure, waking up early magically solves rent lol. Groundbreaking advice.", RelatabilityLabel.NEUTRAL.value),
+        ("I disagree with your second argument and methodology.", RelatabilityLabel.NEUTRAL.value),
+        ("Top tier visuals as always! Awesome editing, what a visual treat!", RelatabilityLabel.NEUTRAL.value),
+    ],
+)
+def test_migrated_relatability_diagnostic_edge_cases(classifier, text, expected_label):
+    """Verify sarcasm, objective personal disagreement, and generic visual praise do not false-positive as Relatable."""
+    diag = classifier.classify_comment(text)
+    assert diag["classification_status"] == ClassificationStatus.SUCCESS.value
+    assert diag["relatability_label"] == expected_label
+
+
+def test_process_comments_pipeline_matches_single_comment_classification_exact(classifier):
+    """Vectorized batch pipeline must produce identical outputs to row-by-row classify_comment + analyze_text."""
+    sample_path = Path("data/sample/sample_comments.csv")
+    df_sample = pd.read_csv(sample_path)
+
+    df_batch = classifier.process_comments_pipeline(df_sample)
+    assert len(df_batch) == len(df_sample)
+
+    for idx, row in df_sample.iterrows():
+        raw_text = row["comment_text"]
+        lang_hint = str(row["language"]) if "language" in row and pd.notna(row["language"]) else None
+        single_rel = classifier.classify_comment(raw_text, language_hint=lang_hint)
+        single_sent = classifier.sentiment_analyzer.analyze_text(raw_text, language_hint=lang_hint)
+        batch_row = df_batch.iloc[idx]
+
+        assert batch_row["language"] == single_rel["language"]
+        assert batch_row["classification_status"] == single_rel["classification_status"]
+        assert (
+            (pd.isna(batch_row["relatability_label"]) and single_rel["relatability_label"] is None)
+            or batch_row["relatability_label"] == single_rel["relatability_label"]
+        )
+        assert (
+            (pd.isna(batch_row["relatability_confidence"]) and single_rel["relatability_confidence"] is None)
+            or batch_row["relatability_confidence"] == pytest.approx(single_rel["relatability_confidence"], abs=1e-9)
+        )
+        assert (
+            (pd.isna(batch_row["sentiment_label"]) and single_sent["sentiment_label"] is None)
+            or batch_row["sentiment_label"] == single_sent["sentiment_label"]
+        )
+        assert (
+            (pd.isna(batch_row["sentiment_score"]) and single_sent["polarity"] is None)
+            or batch_row["sentiment_score"] == pytest.approx(single_sent["polarity"], abs=1e-9)
+        )
+
+
+def test_process_comments_pipeline_isolates_batch_inference_failures():
+    """Verify interleaved ordering, malformed batch output, per-row fallback exceptions, and denominator exclusion."""
+    import numpy as np
+
+    clf = RelatabilityClassifier()
+    clf.fit(
+        ["Literally me every morning", "Felt this in my soul", "What camera did you use", "Nice visuals"],
+        ["Relatable", "Relatable", "Neutral", "Neutral"],
+    )
+
+    orig_predict_proba = clf.pipeline.predict_proba
+
+    def _flaky_predict_proba(texts):
+        # Batch call raises -> forces per-row fallback
+        if len(texts) > 1:
+            raise RuntimeError("Simulated batch vectorization failure")
+        # Individual fallback: one row raises RuntimeError, one returns NaN, valid rows succeed
+        if "raise_exc" in texts[0]:
+            raise ValueError("Simulated single-row model failure")
+        if "nan_prob" in texts[0]:
+            return np.array([[float("nan"), 0.5]])
+        return orig_predict_proba(texts)
+
+    clf.pipeline.predict_proba = _flaky_predict_proba
+
+    # Interleaved rule-based, non-English, empty, and model-eligible rows
+    df_in = pd.DataFrame([
+        {"comment_id": "C_RULE_REL", "post_id": "P1", "comment_text": "Literally me every morning.", "platform": "instagram"},
+        {"comment_id": "C_MOD_EXC", "post_id": "P1", "comment_text": "raise_exc payload row", "platform": "instagram"},
+        {"comment_id": "C_NON_EN", "post_id": "P1", "comment_text": "C'est tellement vrai pour moi aussi dans ma vie", "platform": "instagram"},
+        {"comment_id": "C_MOD_NAN", "post_id": "P1", "comment_text": "nan_prob payload row", "platform": "instagram"},
+        {"comment_id": "C_RULE_TECH", "post_id": "P1", "comment_text": "What camera did you use to film this?", "platform": "youtube"},
+        {"comment_id": "C_MOD_OK", "post_id": "P1", "comment_text": "Nice visuals", "platform": "youtube"},
+    ])
+    df_out = clf.process_comments_pipeline(df_in)
+    assert df_out["comment_id"].tolist() == ["C_RULE_REL", "C_MOD_EXC", "C_NON_EN", "C_MOD_NAN", "C_RULE_TECH", "C_MOD_OK"]
+
+    # 1. Rule-based anchor preserved
+    assert df_out.loc[0, "classification_status"] == ClassificationStatus.SUCCESS.value
+    assert df_out.loc[0, "relatability_label"] == RelatabilityLabel.RELATABLE.value
+    assert df_out.loc[0, "relatability_confidence"] == 0.95
+
+    # 2. Per-row exception -> INFERENCE_FAILED (never fabricated Neutral/Relatable)
+    assert df_out.loc[1, "classification_status"] == ClassificationStatus.INFERENCE_FAILED.value
+    assert pd.isna(df_out.loc[1, "relatability_label"])
+    assert pd.isna(df_out.loc[1, "relatability_confidence"])
+
+    # 3. Non-English -> UNSUPPORTED_LANGUAGE
+    assert df_out.loc[2, "classification_status"] == ClassificationStatus.UNSUPPORTED_LANGUAGE.value
+    assert pd.isna(df_out.loc[2, "relatability_label"])
+
+    # 4. Non-finite probability -> INFERENCE_FAILED
+    assert df_out.loc[3, "classification_status"] == ClassificationStatus.INFERENCE_FAILED.value
+    assert pd.isna(df_out.loc[3, "relatability_label"])
+
+    # 5. Technical inquiry guardrail preserved
+    assert df_out.loc[4, "classification_status"] == ClassificationStatus.SUCCESS.value
+    assert df_out.loc[4, "relatability_label"] == RelatabilityLabel.NEUTRAL.value
+    assert df_out.loc[4, "relatability_confidence"] == 0.92
+
+    # 6. Unaffected model-eligible row succeeds and matches single-comment classification
+    expected_c6 = clf.classify_comment("Nice visuals")
+    assert expected_c6["classification_status"] == ClassificationStatus.SUCCESS.value
+    assert df_out.loc[5, "classification_status"] == expected_c6["classification_status"]
+    assert df_out.loc[5, "relatability_label"] == expected_c6["relatability_label"]
+
+    # 7. Denominator integrity: only the 3 SUCCESS rows enter total_comments_evaluated (not INFERENCE_FAILED or UNSUPPORTED)
+    post_stats = clf.compute_post_relatability_score(df_out)
+    row_p1 = post_stats.iloc[0]
+    assert row_p1["total_comments_raw"] == 6
+    assert row_p1["total_comments_evaluated"] == 3
+    assert row_p1["relatable_comments"] == 1
+
+    # 8. Malformed batch shape (wrong row count) triggers per-row fallback safely
+    clf.pipeline.predict_proba = (
+        lambda texts: np.array([[0.5, 0.5]]) if len(texts) > 1 else orig_predict_proba(texts)
+    )
+    df_malformed = clf.process_comments_pipeline(df_in.iloc[[0, 4, 5]].reset_index(drop=True))
+    assert df_malformed.loc[0, "relatability_label"] == RelatabilityLabel.RELATABLE.value
+    assert df_malformed.loc[1, "relatability_label"] == RelatabilityLabel.NEUTRAL.value
+    assert df_malformed.loc[2, "classification_status"] == expected_c6["classification_status"]
+

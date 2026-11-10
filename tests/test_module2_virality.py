@@ -207,3 +207,97 @@ def test_within_platform_target_normalization():
     # P2 is top of Instagram, P4 is top of YouTube
     assert pcts.iloc[1] == 100.0
     assert pcts.iloc[3] == 100.0
+
+
+def test_evi_platform_percentile_ties_missing_and_retention_applicability():
+    """Verify within-platform EVI percentiles handle ties and missing values while enforcing video-only retention."""
+    predictor = ViralityPredictor()
+    df = pd.DataFrame([
+        {
+            "platform": "instagram",
+            "post_id": "IG_1",
+            "content_type": "reel",
+            "views": 1000,
+            "reach": 800,
+            "likes": 50,
+            "comments_count": 10,
+            "shares": 20,
+            "saves": 30,
+            "retention_rate": 0.70,
+        },
+        {
+            # Carousel with retention_rate=0.90 must use neutral phi=1.0 (not 1.40)
+            "platform": "instagram",
+            "post_id": "IG_2_CAROUSEL",
+            "content_type": "carousel",
+            "views": 1000,
+            "reach": 800,
+            "likes": 50,
+            "comments_count": 10,
+            "shares": 20,
+            "saves": 30,
+            "retention_rate": 0.90,
+        },
+        {
+            # Unknown content_type with retention_rate must also use neutral phi=1.0
+            "platform": "instagram",
+            "post_id": "IG_3_UNKNOWN",
+            "content_type": "unknown",
+            "views": 1000,
+            "reach": 800,
+            "likes": 50,
+            "comments_count": 10,
+            "shares": 20,
+            "saves": 30,
+            "retention_rate": 0.90,
+        },
+        {
+            # Missing numerator metrics -> NaN EVI and NaN percentile
+            "platform": "youtube",
+            "post_id": "YT_MISSING",
+            "content_type": "short",
+            "views": 2000,
+            "likes": np.nan,
+            "comments_count": np.nan,
+            "shares": np.nan,
+            "saves": np.nan,
+            "retention_rate": np.nan,
+        },
+    ])
+
+    detailed = predictor.calculate_engagement_virality_index_detailed(df)
+    assert "evi_platform_percentile" in detailed.columns
+
+    # IG_1 (reel, phi=1.20) must have higher raw EVI than IG_2_CAROUSEL (phi=1.0)
+    assert detailed.loc[0, "engagement_virality_index"] > detailed.loc[1, "engagement_virality_index"]
+    # IG_2_CAROUSEL and IG_3_UNKNOWN both use neutral phi=1.0 -> tied EVI and tied average percentile
+    assert detailed.loc[1, "engagement_virality_index"] == detailed.loc[2, "engagement_virality_index"]
+    assert detailed.loc[1, "evi_platform_percentile"] == detailed.loc[2, "evi_platform_percentile"]
+    assert detailed.loc[0, "evi_platform_percentile"] == 100.0
+    # YT_MISSING has NaN EVI and NaN percentile
+    assert pd.isna(detailed.loc[3, "engagement_virality_index"])
+    assert pd.isna(detailed.loc[3, "evi_platform_percentile"])
+
+
+def test_platform_stratified_evaluation_metrics_and_small_sample_disclosure():
+    """Verify train_and_evaluate reports platform-stratified evaluation metrics and flags small test partitions."""
+    df = create_mock_historical_data(n_samples=60)
+    # Force only 1 YouTube post in the final 20% test split (indices 48..59)
+    df.loc[48:59, "platform"] = "instagram"
+    df.loc[59, "platform"] = "youtube"
+
+    predictor = ViralityPredictor()
+    meta = predictor.train_and_evaluate(df, model_type="ridge", test_ratio=0.2)
+
+    assert "platform_evaluation_metrics" in meta
+    plat_metrics = meta["platform_evaluation_metrics"]
+    assert "instagram" in plat_metrics
+    assert "youtube" in plat_metrics
+
+    assert plat_metrics["instagram"]["test_samples"] == 11
+    assert plat_metrics["instagram"]["status"] == "evaluated"
+    assert plat_metrics["instagram"]["candidate_mae"] is not None
+
+    assert plat_metrics["youtube"]["test_samples"] == 1
+    assert plat_metrics["youtube"]["status"] == "insufficient_evaluation_samples"
+    assert plat_metrics["youtube"]["candidate_mae"] is None

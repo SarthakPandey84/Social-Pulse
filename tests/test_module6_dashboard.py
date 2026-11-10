@@ -18,7 +18,6 @@ Verifies:
 15. Regression compatibility with Modules 1-5.
 """
 
-from datetime import datetime, timedelta
 from pathlib import Path
 import numpy as np
 import pandas as pd
@@ -26,7 +25,7 @@ import pytest
 
 from src.dashboard.growth_dashboard_backend import GrowthDashboardBackend
 from src.preprocessing.cleaning import get_latest_posts_view
-from src.recommender.schemas import ConfidenceLevel, EvidenceSource, RecommendationReport
+from src.recommender.schemas import RecommendationReport
 
 
 @pytest.fixture
@@ -65,12 +64,13 @@ def test_correct_kpi_calculations(backend):
     kpis = backend.calculate_growth_overview_kpis(df)
 
     latest_df = get_latest_posts_view(df)
+    observed_views = latest_df["views"].dropna()
     assert kpis["total_posts"] == len(latest_df)
-    assert kpis["total_views"] == int(latest_df["views"].sum())
-    assert kpis["total_likes"] == int(latest_df["likes"].sum())
-    assert kpis["total_shares"] == int(latest_df["shares"].sum())
+    assert kpis["total_views"] == int(observed_views.sum())
+    assert kpis["total_likes"] == int(latest_df["likes"].dropna().sum())
+    assert kpis["total_shares"] == int(latest_df["shares"].dropna().sum())
     assert kpis["total_saves"] == int(latest_df["saves"].dropna().sum())
-    assert kpis["avg_views_per_post"] == round(latest_df["views"].sum() / len(latest_df), 1)
+    assert kpis["avg_views_per_post"] == round(float(observed_views.sum()) / len(observed_views), 1)
     assert kpis["platform_count"] == len(latest_df["platform"].unique())
 
 
@@ -82,14 +82,16 @@ def test_engagement_rate_denominator_integrity(backend):
     kpis = backend.calculate_growth_overview_kpis(df)
 
     latest_df = get_latest_posts_view(df)
-    tot_views = latest_df["views"].sum()
+    # Views-based rate must only sum interactions from posts with valid views > 0 (never NA-views photos)
+    views_posts = latest_df[latest_df["views"].notna() & (latest_df["views"] > 0)]
+    tot_views = views_posts["views"].sum()
     tot_interactions = (
-        latest_df["likes"].sum() +
-        latest_df["comments_count"].sum() +
-        latest_df["shares"].sum() +
-        latest_df["saves"].dropna().sum()
+        views_posts["likes"].fillna(0).sum() +
+        views_posts["comments_count"].fillna(0).sum() +
+        views_posts["shares"].fillna(0).sum() +
+        views_posts["saves"].fillna(0).sum()
     )
-    expected_views_rate = round(tot_interactions / tot_views * 100.0, 2)
+    expected_views_rate = round(float(tot_interactions) / float(tot_views) * 100.0, 2)
     assert kpis["overall_views_engagement_rate"] == expected_views_rate
 
     # Reach-based rate must only sum interactions from posts with reach > 0
@@ -180,10 +182,14 @@ def test_missing_value_handling_youtube_metrics(backend):
     assert yt_posts["reach"].isna().all() or (yt_posts["reach"] == 0).all()
     assert yt_posts["saves"].isna().all() or (yt_posts["saves"] == 0).all()
 
-    # Calculating KPIs on YouTube only should not crash
+    # Calculating KPIs on YouTube only should preserve None for unavailable metrics without crashing
     yt_kpis = backend.calculate_growth_overview_kpis(yt_posts)
-    assert yt_kpis["total_saves"] == 0
-    assert yt_kpis["overall_reach_engagement_rate"] == 0.0
+    assert yt_kpis["total_saves"] is None
+    assert yt_kpis["overall_reach_engagement_rate"] is None
+    assert yt_kpis["avg_reach_per_post"] is None
+    assert yt_kpis["total_collect_count_proxy"] is None
+    assert yt_kpis["metric_availability"]["saves"] is False
+    assert yt_kpis["metric_availability"]["reach"] is False
     assert yt_kpis["overall_views_engagement_rate"] > 0.0
 
 
@@ -194,7 +200,10 @@ def test_empty_data_behavior(backend):
     empty_df = pd.DataFrame()
     kpis = backend.calculate_growth_overview_kpis(empty_df)
     assert kpis["total_posts"] == 0
-    assert kpis["total_views"] == 0
+    assert kpis["total_views"] is None
+    assert kpis["avg_views_per_post"] is None
+    assert kpis["overall_views_engagement_rate"] is None
+    assert kpis["total_collect_count_proxy"] is None
     assert kpis["reporting_period"] == "N/A"
 
     ts = backend.calculate_time_series_trends(empty_df)
@@ -323,8 +332,30 @@ def test_relatability_interpretation_disclaimer(backend):
     assert expected_snippet in text
     assert "does not establish equivalence or prove the absence of an effect" in text
     assert "causally dictate" not in text
-    assert aud["correlation_rho"] == 0.0044
-    assert aud["correlation_p"] == 0.972
+    # Deduplicated 120-post fixture yields Spearman rho = -0.0109, p = 0.932
+    assert aud["correlation_rho"] == -0.0109
+    assert aud["correlation_p"] == 0.932
+
+
+def test_audience_insights_deduplicates_post_snapshots(backend):
+    """Verify duplicate post snapshots do not multiply comment joins or distort topic relatability denominators."""
+    baseline_aud = backend.calculate_audience_insights()
+
+    # Duplicate the entire posts_df with an earlier collection_timestamp
+    older_snapshot = backend.posts_df.copy()
+    older_snapshot["collection_timestamp"] = "2026-01-01T00:00:00Z"
+    older_snapshot["saves"] = 999999  # Stale snapshot value that must be superseded
+
+    orig_posts = backend.posts_df
+    try:
+        backend.posts_df = pd.concat([orig_posts, older_snapshot], ignore_index=True)
+        dup_aud = backend.calculate_audience_insights()
+    finally:
+        backend.posts_df = orig_posts
+
+    assert dup_aud["correlation_rho"] == baseline_aud["correlation_rho"]
+    assert dup_aud["correlation_p"] == baseline_aud["correlation_p"]
+    assert dup_aud["topic_relatability"].equals(baseline_aud["topic_relatability"])
 
 
 # --- 17. Audit 2: Pooled vs. Arithmetic Mean Engagement Rates Distinction ---
@@ -485,8 +516,177 @@ def test_missing_saves_handling(backend):
     kpis = backend.calculate_growth_overview_kpis(yt_only)
     assert kpis["platform_count"] == 1
     assert "Youtube" in kpis["connected_platforms"]
-    # Reach rate on YouTube must be 0.0 (unavailable)
-    assert kpis["overall_reach_engagement_rate"] == 0.0
+    # Reach & saves on YouTube must be None (unavailable, never coerced to 0)
+    assert kpis["overall_reach_engagement_rate"] is None
+    assert kpis["total_saves"] is None
     assert kpis["platform_metric_availability"]["YouTube"]["saves_tracked"] is False
     assert kpis["platform_metric_availability"]["Instagram"]["saves_tracked"] is True
+
+
+def test_scalar_kpis_distinguish_genuine_zero_unavailable_and_mixed(backend):
+    """Scalar KPIs must return None for unavailable metrics, 0/0.0 for genuine measured zeros, and handle mixed cohorts."""
+    # 1. Unavailable / all-NA scalar metrics over a multi-week window
+    dates_unavail = pd.date_range("2026-08-01", periods=16, freq="D", tz="UTC")
+    df_unavail = pd.DataFrame({
+        "post_id": [f"U{i}" for i in range(16)],
+        "platform": ["instagram"] * 16,
+        "timestamp": dates_unavail,
+        "views": pd.Series([pd.NA] * 16, dtype="Int64"),
+        "likes": pd.Series([100 + i for i in range(16)], dtype="Int64"),
+        "comments_count": pd.Series([10] * 16, dtype="Int64"),
+        "shares": pd.Series([pd.NA] * 16, dtype="Int64"),
+        "saves": pd.Series([pd.NA] * 16, dtype="Int64"),
+        "reach": pd.Series([pd.NA] * 16, dtype="Int64"),
+    })
+    k_unavail = backend.calculate_growth_overview_kpis(df_unavail)
+    assert k_unavail["total_posts"] == 16
+    assert k_unavail["total_likes"] == sum(100 + i for i in range(16))
+    for none_key in (
+        "total_views", "total_impressions", "total_shares", "total_saves",
+        "total_new_followers", "avg_views_per_post", "avg_reach_per_post",
+        "overall_views_engagement_rate", "pooled_views_engagement_rate",
+        "mean_post_level_views_engagement_rate", "overall_reach_engagement_rate",
+        "pooled_reach_engagement_rate", "mean_post_level_reach_engagement_rate",
+        "total_collect_count_proxy",
+    ):
+        assert k_unavail[none_key] is None, f"Expected None for unavailable '{none_key}', got {k_unavail[none_key]}"
+    assert k_unavail["has_previous_period_comparison"] is True
+    assert k_unavail["comparison_deltas"]["views_delta_pct"] is None
+    assert "Zero activity in previous comparison period" not in k_unavail["comparison_note"]
+
+    # 2. Genuine measured 0 across all metrics preserves 0 and 0.0
+    df_zero = pd.DataFrame([{
+        "post_id": "Z_ALL",
+        "platform": "instagram",
+        "timestamp": "2026-08-01T10:00:00Z",
+        "views": 0,
+        "impressions": 0,
+        "reach": 0,
+        "likes": 0,
+        "comments_count": 0,
+        "shares": 0,
+        "saves": 0,
+        "new_followers": 0,
+    }])
+    k_zero = backend.calculate_growth_overview_kpis(df_zero)
+    for zero_int in ("total_views", "total_impressions", "total_likes", "total_comments", "total_shares", "total_saves", "total_new_followers"):
+        assert k_zero[zero_int] == 0
+    for zero_flt in (
+        "avg_views_per_post", "avg_reach_per_post",
+        "pooled_views_engagement_rate", "mean_post_level_views_engagement_rate",
+        "pooled_reach_engagement_rate", "mean_post_level_reach_engagement_rate",
+    ):
+        assert k_zero[zero_flt] == 0.0
+    assert k_zero["total_collect_count_proxy"] is None
+
+    # 3. Mixed cohort (Instagram + TikTok proxy)
+    df_mixed = pd.DataFrame([
+        {
+            "post_id": "IG1", "platform": "instagram", "timestamp": "2026-08-01T10:00:00Z",
+            "views": 1000, "reach": 800, "likes": 40, "comments_count": 10, "shares": 10, "saves": 20, "collect_count": pd.NA,
+        },
+        {
+            "post_id": "TK1", "platform": "tiktok", "timestamp": "2026-08-02T10:00:00Z",
+            "views": 2000, "reach": pd.NA, "likes": 100, "comments_count": 20, "shares": 30, "saves": pd.NA, "collect_count": 45,
+        },
+    ])
+    k_mix = backend.calculate_growth_overview_kpis(df_mixed)
+    assert k_mix["total_views"] == 3000
+    assert k_mix["total_saves"] == 20
+    assert k_mix["total_collect_count_proxy"] == 45
+    assert k_mix["total_impressions"] is None
+    assert k_mix["total_new_followers"] is None
+    assert k_mix["avg_reach_per_post"] == 800.0
+    assert k_mix["pooled_reach_engagement_rate"] == 10.0  # (40+10+10+20)/800 * 100%
+
+
+# --- 23. Content Breakdowns Missing-Metric Integrity ---
+
+def test_content_breakdowns_preserve_na_never_zero_impute(backend):
+    """Missing/all-NA or absent metrics in calculate_content_breakdowns must stay NaN rather than 0.0."""
+    df_unavail = pd.DataFrame({
+        "post_id": ["S1", "S2", "S3"],
+        "platform": ["instagram", "instagram", "instagram"],
+        "content_type": ["image", "image", "image"],
+        "topic": ["Art", "Art", "Art"],
+        "duration_seconds": [20.0, 30.0, 40.0],
+        "hook_type": ["Visual Hook", "Visual Hook", "Visual Hook"],
+        "views": pd.Series([pd.NA, pd.NA, pd.NA], dtype="Int64"),
+        "likes": pd.Series([100, 200, 300], dtype="Int64"),
+        "comments_count": pd.Series([10, 20, 30], dtype="Int64"),
+        "shares": pd.Series([pd.NA, pd.NA, pd.NA], dtype="Int64"),
+        "saves": pd.Series([pd.NA, pd.NA, pd.NA], dtype="Int64"),
+        "retention_rate": pd.Series([pd.NA, pd.NA, pd.NA], dtype="Float64"),
+        "new_followers": pd.Series([pd.NA, pd.NA, pd.NA], dtype="Int64"),
+    })
+    bk = backend.calculate_content_breakdowns(df_unavail)
+
+    fmt_row = bk["by_format"].iloc[0]
+    assert fmt_row["avg_likes"] == pytest.approx(200.0)
+    assert fmt_row["avg_comments"] == pytest.approx(20.0)
+    for col in ("avg_views", "avg_shares", "avg_retention", "avg_saves", "views_engagement_rate", "high_intent_rate"):
+        assert pd.isna(fmt_row[col]), f"Expected NaN for by_format[{col}], got {fmt_row[col]}"
+
+    top_row = bk["by_topic"].iloc[0]
+    for col in ("avg_views", "avg_shares", "avg_retention", "avg_saves", "new_followers", "save_to_share_ratio"):
+        assert pd.isna(top_row[col]), f"Expected NaN for by_topic[{col}], got {top_row[col]}"
+
+    dur_rows = bk["by_duration"]
+    for col in ("avg_views", "avg_shares", "avg_retention"):
+        assert dur_rows[col].isna().all(), f"Expected all-NaN for by_duration[{col}]"
+
+    hook_row = bk["by_hook"].iloc[0]
+    for col in ("avg_views", "avg_shares", "avg_retention", "share_rate"):
+        assert pd.isna(hook_row[col]), f"Expected NaN for by_hook[{col}], got {hook_row[col]}"
+
+
+def test_content_breakdowns_absent_columns_and_genuine_zeros(backend):
+    """Absent schema columns stay NaN without KeyError, while genuine 0s remain 0.0."""
+    df_minimal = pd.DataFrame({
+        "platform": ["tiktok", "tiktok"],
+        "content_type": ["short video", "short video"],
+        "topic": ["Tech", "Tech"],
+        "duration_seconds": [15.0, 28.0],
+        "hook_type": ["Question Hook", "Question Hook"],
+        "likes": [50, 150],
+    })
+    bk_min = backend.calculate_content_breakdowns(df_minimal)
+    fmt_min = bk_min["by_format"].iloc[0]
+    assert int(fmt_min["post_count"]) == 2
+    assert fmt_min["avg_likes"] == pytest.approx(100.0)
+    for col in ("avg_views", "avg_shares", "avg_retention", "avg_comments", "avg_saves", "views_engagement_rate", "high_intent_rate"):
+        assert pd.isna(fmt_min[col])
+    assert pd.isna(bk_min["by_topic"].iloc[0]["save_to_share_ratio"])
+    assert pd.isna(bk_min["by_topic"].iloc[0]["new_followers"])
+    assert pd.isna(bk_min["by_hook"].iloc[0]["share_rate"])
+    assert bk_min["timing_matrix"].empty
+
+    # Contrast genuine zero vs unavailable pd.NA across two groups
+    df_mixed = pd.DataFrame({
+        "post_id": ["G1", "G2"],
+        "platform": ["instagram", "tiktok"],
+        "content_type": ["reel", "short video"],
+        "topic": ["GenuineZero", "UnavailableSaves"],
+        "views": [1000, 1000],
+        "likes": [0, 50],
+        "comments_count": pd.Series([0, pd.NA], dtype="Int64"),
+        "shares": [10, 10],
+        "saves": pd.Series([0, pd.NA], dtype="Int64"),
+        "new_followers": pd.Series([0, pd.NA], dtype="Int64"),
+    })
+    bk_mix = backend.calculate_content_breakdowns(df_mixed)
+    top_map = bk_mix["by_topic"].set_index("topic")
+    assert top_map.loc["GenuineZero", "avg_saves"] == pytest.approx(0.0)
+    assert top_map.loc["GenuineZero", "save_to_share_ratio"] == pytest.approx(0.0)
+    assert top_map.loc["GenuineZero", "new_followers"] == pytest.approx(0.0)
+    assert pd.isna(top_map.loc["UnavailableSaves", "avg_saves"])
+    assert pd.isna(top_map.loc["UnavailableSaves", "save_to_share_ratio"])
+    assert pd.isna(top_map.loc["UnavailableSaves", "new_followers"])
+
+    fmt_map = bk_mix["by_format"].set_index("content_type")
+    assert fmt_map.loc["reel", "avg_saves"] == pytest.approx(0.0)
+    assert fmt_map.loc["reel", "high_intent_rate"] == pytest.approx(1.0)
+    assert pd.isna(fmt_map.loc["short video", "avg_saves"])
+    assert fmt_map.loc["short video", "high_intent_rate"] == pytest.approx(1.0)
+    assert fmt_map.loc["short video", "views_engagement_rate"] == pytest.approx(6.0)
 

@@ -231,3 +231,181 @@ def test_data_completeness_instagram_vs_youtube():
     # On YouTube, saves is structurally not applicable and NOT counted against completeness
     assert feat_yt.iloc[0]["data_completeness_pct"] == 100.0
     assert feat_yt.iloc[0]["high_intent_completeness"] == "partial_shares_only"
+
+
+def test_engagement_analytics_deduplication_and_retention_applicability():
+    """Verify EngagementAnalytics deduplicates repeated post snapshots and computes avg_retention_pct strictly over valid video formats."""
+    from src.analytics.engagement_metrics import EngagementAnalytics, is_retention_applicable
+
+    assert is_retention_applicable("instagram", "reel") is True
+    assert is_retention_applicable("youtube", "short") is True
+    assert is_retention_applicable("youtube", "video") is True
+    assert is_retention_applicable("instagram", "carousel") is False
+    assert is_retention_applicable("instagram", "image") is False
+    assert is_retention_applicable("instagram", None) is False
+    assert is_retention_applicable("instagram", "unknown") is False
+    assert is_retention_applicable("youtube", "reel") is False
+    assert is_retention_applicable("instagram", "short") is False
+
+    loader = SampleDataIngestion()
+    raw_df, _ = loader.load_sample_posts()
+    assert len(raw_df) == 121  # 120 unique posts + 1 earlier snapshot of POST_0001
+
+    analytics = EngagementAnalytics()
+    kpis = analytics.calculate_summary_kpis(raw_df)
+    assert kpis["total_posts"] == 120
+
+    # Mix valid video, carousel, image, missing retention, and platform-incompatible rows
+    mixed_df = pd.DataFrame([
+        {
+            "platform": "instagram",
+            "post_id": "P_VID_1",
+            "timestamp": "2026-10-01T10:00:00Z",
+            "collection_timestamp": "2026-10-02T10:00:00Z",
+            "content_type": "reel",
+            "topic": "Topic A",
+            "views": 1000,
+            "reach": 800,
+            "likes": 50,
+            "comments_count": 10,
+            "shares": 5,
+            "saves": 15,
+            "follower_count": 10000,
+            "new_followers": 120,
+            "retention_rate": 0.60,
+        },
+        {
+            # Earlier snapshot of P_VID_1 with stale views and retention; must be deduplicated out
+            "platform": "instagram",
+            "post_id": "P_VID_1",
+            "timestamp": "2026-10-01T10:00:00Z",
+            "collection_timestamp": "2026-10-01T12:00:00Z",
+            "content_type": "reel",
+            "topic": "Topic A",
+            "views": 500,
+            "reach": 400,
+            "likes": 20,
+            "comments_count": 4,
+            "shares": 1,
+            "saves": 5,
+            "follower_count": 10000,
+            "new_followers": 999,
+            "retention_rate": 0.20,
+        },
+        {
+            # Carousel with spurious retention_rate must be excluded from avg_retention_pct
+            "platform": "instagram",
+            "post_id": "P_CAR_1",
+            "timestamp": "2026-10-02T10:00:00Z",
+            "collection_timestamp": "2026-10-03T10:00:00Z",
+            "content_type": "carousel",
+            "topic": "Topic B",
+            "views": 2000,
+            "reach": 1600,
+            "likes": 100,
+            "comments_count": 20,
+            "shares": 10,
+            "saves": 30,
+            "follower_count": 20000,
+            "new_followers": 80,
+            "retention_rate": 0.95,
+        },
+        {
+            # Video with missing retention_rate must not count as 0
+            "platform": "youtube",
+            "post_id": "P_YT_1",
+            "timestamp": "2026-10-03T10:00:00Z",
+            "collection_timestamp": "2026-10-04T10:00:00Z",
+            "content_type": "short",
+            "topic": "Topic C",
+            "views": 3000,
+            "reach": pd.NA,
+            "likes": 150,
+            "comments_count": 30,
+            "shares": 15,
+            "saves": pd.NA,
+            "follower_count": 30000,
+            "new_followers": 50,
+            "retention_rate": pd.NA,
+        },
+    ])
+
+    mixed_kpis = analytics.calculate_summary_kpis(mixed_df)
+    assert mixed_kpis["total_posts"] == 3
+    assert mixed_kpis["total_views"] == 6000  # 1000 + 2000 + 3000 (not 6500)
+    assert mixed_kpis["avg_retention_pct"] == 60.0  # Only P_VID_1 (0.60 * 100)
+
+    corr_df = analytics.topic_follower_correlation(mixed_df)
+    assert len(corr_df) == 3
+    topic_a_row = corr_df[corr_df["topic"] == "Topic A"].iloc[0]
+    assert topic_a_row["posts_count"] == 1
+    assert topic_a_row["total_new_followers"] == 120
+
+
+def test_storage_manager_closes_sqlite_connections_cleanly(tmp_path):
+    """Verify DataStorageManager deterministically closes SQLite connections on normal exit and error."""
+    import sqlite3
+
+    db_path = tmp_path / "connection_lifecycle.db"
+    manager = DataStorageManager(db_path=db_path)
+
+    df_posts = pd.DataFrame([{
+        "platform": "instagram",
+        "post_id": "P_SQL_1",
+        "timestamp": "2026-10-01T10:00:00Z",
+        "collection_timestamp": "2026-10-02T10:00:00Z",
+        "content_type": "reel",
+        "views": 1200,
+        "likes": 60,
+        "comments_count": 5,
+        "shares": 3,
+        "saves": 8,
+    }])
+
+    inserted = manager.persist_to_sqlite(df_posts, table_name="posts", if_exists="replace")
+    assert inserted == 1
+    assert len(manager.load_from_sqlite()) == 1
+    assert len(manager.load_latest_from_sqlite()) == 1
+    assert len(manager.load_history_for_post("instagram", "P_SQL_1")) == 1
+
+    # Verify corrupt/invalid DB query does not leak open handle before deleting file
+    bad_db_path = tmp_path / "corrupt_lifecycle.db"
+    bad_db_path.write_text("not a valid sqlite database", encoding="utf-8")
+    bad_manager = DataStorageManager(db_path=bad_db_path)
+    try:
+        bad_manager.load_from_sqlite()
+    except (sqlite3.DatabaseError, pd.errors.DatabaseError):
+        pass
+
+    # On Windows, an unclosed SQLite handle would raise PermissionError (WinError 32) on unlink()
+    db_path.unlink()
+    bad_db_path.unlink()
+    assert not db_path.exists()
+    assert not bad_db_path.exists()
+
+
+def test_social_media_scraper_placeholder_contract():
+    """Verify SocialMediaScraper works across all 3 import paths and preserves its placeholder contract."""
+    from src.data_ingestion import SocialMediaScraper
+    from src.data_ingestion.api_connectors import SocialMediaScraper as CanonicalScraper
+    from src.data_ingestion.data_scraper import SocialMediaScraper as ShimScraper
+
+    assert SocialMediaScraper is CanonicalScraper
+    assert ShimScraper is CanonicalScraper
+    assert SocialMediaScraper.__doc__ and "placeholder" in SocialMediaScraper.__doc__.lower()
+
+    scraper = SocialMediaScraper(headless=True)
+    metrics = scraper.scrape_post_metrics("https://example.com/post/123")
+    assert set(metrics.keys()) == {"url", "views", "likes", "comments_count", "shares", "saves", "status"}
+    assert metrics["url"] == "https://example.com/post/123"
+    assert metrics["status"] == "placeholder"
+    assert metrics["views"] == 0
+    assert metrics["likes"] == 0
+    assert metrics["comments_count"] == 0
+    assert metrics["shares"] == 0
+    assert metrics["saves"] == 0
+
+    comments_df = scraper.scrape_comments("https://example.com/post/123", limit=50)
+    assert isinstance(comments_df, pd.DataFrame)
+    assert comments_df.empty
+    assert list(comments_df.columns) == ["post_id", "comment_id", "author", "comment_text", "timestamp", "likes"]

@@ -444,4 +444,47 @@ def test_pseudo_replication_guard_deduplicates_repeated_post_snapshots(framework
     assert any("pseudo-replication" in w.lower() for w in res_dict["warning_messages"])
 
 
+def test_welch_t_statistic_sign_aligns_with_variant_b_minus_a(framework):
+    """Verify Welch's t-statistic uses Variant B - Variant A sign convention consistently across all outcomes."""
+    rng = np.random.default_rng(2026)
+
+    # Case 1: Variant B > Variant A -> positive t_statistic, positive lift, positive CI
+    a_low = rng.normal(loc=10.0, scale=1.5, size=40)
+    b_high = rng.normal(loc=14.0, scale=1.5, size=40)
+    res_pos = framework.compare_continuous(a_low, b_high, metric_name="shares")
+    assert res_pos.absolute_difference > 0
+    assert res_pos.relative_lift_pct > 0
+    assert res_pos.test_statistic > 0
+    assert res_pos.effect_size > 0
+    assert res_pos.confidence_interval[0] > 0
+    assert res_pos.is_statistically_significant is True
+
+    # Case 2: Variant B < Variant A -> negative t_statistic, negative lift, negative CI
+    res_neg = framework.compare_continuous(b_high, a_low, metric_name="shares")
+    assert res_neg.absolute_difference < 0
+    assert res_neg.relative_lift_pct < 0
+    assert res_neg.test_statistic < 0
+    assert res_neg.effect_size < 0
+    assert res_neg.confidence_interval[1] < 0
+    assert res_neg.is_statistically_significant is True
+    assert res_neg.p_value == pytest.approx(res_pos.p_value, rel=1e-12)
+    assert res_neg.test_statistic == pytest.approx(-res_pos.test_statistic, rel=1e-12)
+
+    # Case 3: Equal sample means -> exact 0.0 t_statistic (no -0.0)
+    res_zero = framework.compare_continuous([10.0, 12.0, 14.0], [9.0, 12.0, 15.0], metric_name="shares")
+    assert res_zero.absolute_difference == 0.0
+    assert res_zero.test_statistic == 0.0
+    assert str(res_zero.test_statistic) != "-0.0"
+
+    # Case 4: Inconclusive noisy difference -> t_statistic sign still matches absolute_difference sign
+    a_noisy = rng.normal(loc=50.0, scale=15.0, size=25)
+    b_noisy = rng.normal(loc=51.5, scale=15.0, size=25)
+    res_inc = framework.compare_continuous(a_noisy, b_noisy, metric_name="shares")
+    assert res_inc.is_statistically_significant is False
+    if res_inc.absolute_difference > 0:
+        assert res_inc.test_statistic > 0
+    elif res_inc.absolute_difference < 0:
+        assert res_inc.test_statistic < 0
+
+
 

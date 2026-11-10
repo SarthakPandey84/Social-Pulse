@@ -107,3 +107,126 @@ def test_home_page_loads_cleanly_without_exceptions():
     assert "SocialPulse" in rendered_html
     assert "sp-module-card" in rendered_html
     assert rendered_html.count("MODULE 0") == 7
+
+
+def test_vectorized_feature_engineering_and_evi_rowwise_parity():
+    """Verify vectorized add_engagement_features and EVI match strict scalar row-by-row semantics."""
+    import numpy as np
+    from src.data_ingestion.schemas import get_applicable_metrics
+    from src.modeling.virality_predictor import ViralityPredictor
+    from src.preprocessing.feature_engineering import add_engagement_features
+
+    df = pd.DataFrame([
+        {
+            "post_id": "P_IG_REEL",
+            "platform": "instagram",
+            "content_type": "Reel",
+            "views": 1000,
+            "reach": 850,
+            "impressions": 1150,
+            "likes": 120,
+            "comments_count": 15,
+            "shares": 25,
+            "saves": 40,
+            "retention_rate": 0.62,
+            "follower_count": 5000,
+        },
+        {
+            "post_id": "P_IG_CAROUSEL",
+            "platform": "instagram",
+            "content_type": "Carousel",
+            "views": pd.NA,
+            "reach": 500,
+            "impressions": 700,
+            "likes": 50,
+            "comments_count": 5,
+            "shares": 0,
+            "saves": 12,
+            "retention_rate": 0.75,  # Non-video static format must remain phi=1.0 and N/A effective_watch_views
+            "follower_count": 5000,
+        },
+        {
+            "post_id": "P_YT_SHORT",
+            "platform": "youtube",
+            "content_type": "Short Video",
+            "views": 2500,
+            "reach": pd.NA,
+            "impressions": pd.NA,
+            "likes": 0,
+            "comments_count": 3,
+            "shares": 10,
+            "saves": pd.NA,
+            "retention_rate": 0.85,
+        },
+        {
+            "post_id": "P_TK_VIDEO",
+            "platform": "tiktok",
+            "content_type": "Short Video",
+            "views": 0,
+            "reach": pd.NA,
+            "impressions": pd.NA,
+            "likes": 4,
+            "comments_count": 1,
+            "shares": 0,
+            "saves": pd.NA,
+            "retention_rate": pd.NA,
+        },
+        {
+            "post_id": "P_UNMEASURED",
+            "platform": "instagram",
+            "content_type": "Reel",
+            "views": pd.NA,
+            "reach": pd.NA,
+            "impressions": pd.NA,
+            "likes": 10,
+            "comments_count": pd.NA,
+            "shares": pd.NA,
+            "saves": pd.NA,
+            "retention_rate": 1.25,  # Out-of-range retention_rate falls back to neutral phi=1.0
+        },
+    ])
+
+    feat_df = add_engagement_features(df)
+
+    # Row 0 (IG Reel)
+    assert int(feat_df.loc[0, "high_intent_actions"]) == 65
+    assert feat_df.loc[0, "high_intent_completeness"] == "complete"
+    assert float(feat_df.loc[0, "save_to_share_ratio"]) == 1.60
+    assert feat_df.loc[0, "save_share_ratio_status"] == "valid_ratio"
+    assert float(feat_df.loc[0, "intent_to_passive_ratio"]) == round(65 / 120, 3)
+    assert float(feat_df.loc[0, "views_engagement_rate"]) == round(200 / 1000, 4)
+    assert float(feat_df.loc[0, "reach_engagement_rate"]) == round(200 / 850, 4)
+    assert float(feat_df.loc[0, "equivalent_full_watch_views"]) == 620.0
+    assert feat_df.loc[0, "metric_unavailability_audit"] == "all_applicable_observed"
+
+    # Row 1 (IG Carousel): 0 shares & +saves -> undefined_zero_shares, static format -> not_applicable_non_video
+    assert pd.isna(feat_df.loc[1, "save_to_share_ratio"])
+    assert feat_df.loc[1, "save_share_ratio_status"] == "undefined_zero_shares"
+    assert pd.isna(feat_df.loc[1, "equivalent_full_watch_views"])
+    assert feat_df.loc[1, "equivalent_full_watch_status"] == "not_applicable_non_video"
+    app_carousel = get_applicable_metrics("instagram", "Carousel", "owner_oauth")
+    assert float(feat_df.loc[1, "data_completeness_pct"]) == round((len(app_carousel) / len(app_carousel)) * 100.0, 1)
+
+    # Row 2 (YT Short): partial_shares_only + 0 likes -> undefined_zero_likes, no saves/reach
+    assert int(feat_df.loc[2, "high_intent_actions"]) == 10
+    assert feat_df.loc[2, "high_intent_completeness"] == "partial_shares_only"
+    assert feat_df.loc[2, "intent_passive_ratio_status"] == "undefined_zero_likes"
+    assert "saves:not_applicable_youtube" in feat_df.loc[2, "metric_unavailability_audit"]
+
+    # Row 3 (TikTok 0 views): views_engagement_rate must remain <NA> (never inf or 0.0)
+    assert pd.isna(feat_df.loc[3, "views_engagement_rate"])
+
+    # Vectorized EVI vs element-wise calculate_single_post_score exact parity
+    predictor = ViralityPredictor()
+    evi_df = predictor.calculate_engagement_virality_index_detailed(df)
+    for idx in range(len(df)):
+        ref = predictor.calculate_single_post_score(df.iloc[idx])
+        got_evi = evi_df.loc[idx, "engagement_virality_index"]
+        if pd.isna(ref["engagement_virality_index"]):
+            assert pd.isna(got_evi), f"Row {idx} expected NaN EVI, got {got_evi}"
+        else:
+            assert np.isclose(float(got_evi), float(ref["engagement_virality_index"]), atol=1e-9)
+        assert evi_df.loc[idx, "metrics_contributed"] == ref["metrics_contributed"]
+        assert float(evi_df.loc[idx, "weight_coverage"]) == float(ref["weight_coverage"])
+        assert evi_df.loc[idx, "denominator_used"] == ref["denominator_used"]
+        assert evi_df.loc[idx, "confidence_tier"] == ref["confidence_tier"]

@@ -1190,4 +1190,47 @@ def test_prepare_post_time_series_and_velocity_edge_cases():
     assert vel["keyword"].isna().sum() == 0
 
 
+def test_manual_override_uses_own_residual_spreads_instead_of_champion():
+    """Verify an eligible manual model override uses its own step residual spreads and origin counts."""
+    # Strong linear trend with low noise: Holt tracks trend tightly (tiny residuals),
+    # whereas Naive lags behind trend at every step (much larger residuals).
+    dates = pd.date_range("2026-09-01", periods=25, freq="D")
+    df = pd.DataFrame({
+        "post_id": [f"p_{i}" for i in range(25)],
+        "timestamp": dates,
+        "platform": ["instagram"] * 25,
+        "views": [1000.0 + i * 100.0 for i in range(25)],
+        "likes": [50] * 25,
+        "comments_count": [5] * 25,
+        "shares": [2] * 25,
+        "saves": [1] * 25,
+    })
+
+    forecaster = TrendForecaster()
+    rep_champ = forecaster.forecast_metric(df, target_metric="cohort_views", platform="instagram", cadence="D", horizon=3)
+    rep_naive = forecaster.forecast_metric(
+        df,
+        target_metric="cohort_views",
+        platform="instagram",
+        cadence="D",
+        horizon=3,
+        selected_model=ForecastModelType.NAIVE,
+    )
+
+    assert rep_champ.status == ValidationStatus.VALID
+    assert rep_naive.status == ValidationStatus.VALID
+    assert rep_naive.is_manual_override is True
+    assert rep_champ.champion_model != ForecastModelType.NAIVE.value
+
+    naive_eval = next(m for m in rep_naive.model_evaluations if m.model_name == ForecastModelType.NAIVE.value)
+    assert naive_eval.is_eligible_for_champion is True
+    assert 1 in naive_eval.step_error_spreads
+
+    # Naive's step-1 residual spread must reflect Naive's own errors, not the low-error champion's spread
+    assert rep_naive.forecast_points[0].empirical_error_spread == pytest.approx(naive_eval.step_error_spreads[1], rel=1e-9)
+    assert rep_naive.forecast_points[0].empirical_error_spread > rep_champ.forecast_points[0].empirical_error_spread
+    assert rep_naive.forecast_points[0].residual_count == naive_eval.step_error_counts[1]
+    assert any("MANUAL OVERRIDE UNCERTAINTY" in d for d in rep_naive.disclosures)
+
+
 
