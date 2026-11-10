@@ -9,6 +9,7 @@ hybrid NLP pipeline:
 """
 
 from datetime import datetime, timezone
+import logging
 from pathlib import Path
 import re
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -27,6 +28,8 @@ from src.data_ingestion.schemas import (
 )
 from src.nlp.sentiment_analyzer import SentimentAnalyzer
 from src.nlp.text_preprocessor import TextPreprocessor, PreprocessedText
+
+logger = logging.getLogger(__name__)
 
 
 class RelatabilityClassifier:
@@ -168,8 +171,10 @@ class RelatabilityClassifier:
                 classes = list(self.pipeline.named_steps["clf"].classes_)
                 probs = self.pipeline.predict_proba([norm_text])[0]
                 prob_dict = dict(zip(classes, probs))
-                p_relatable = prob_dict.get("Relatable", 0.0)
-                p_neutral = prob_dict.get("Neutral", 0.0)
+                p_relatable = float(prob_dict.get("Relatable", 0.0))
+                p_neutral = float(prob_dict.get("Neutral", 0.0))
+                if not (np.isfinite(p_relatable) and np.isfinite(p_neutral)):
+                    raise ValueError("Statistical model returned non-finite class probabilities.")
 
                 # Layer 3: Uncertainty Window (0.42 to 0.58)
                 if 0.42 <= p_relatable <= 0.58:
@@ -199,9 +204,30 @@ class RelatabilityClassifier:
                     "classification_status": ClassificationStatus.SUCCESS.value,
                     "rejection_reason": None
                 }
-            except Exception as e:
-                # Fallback to neutral if statistical prediction fails unexpectedly
-                pass
+            except Exception as exc:
+                raw_msg = str(exc)
+                contains_input = any(
+                    s and len(s.strip()) >= 3 and s in raw_msg
+                    for s in (prep.raw_text, prep.cleaned_text, norm_text)
+                )
+                safe_detail = "[redacted]" if contains_input else raw_msg
+                logger.error(
+                    "Statistical relatability inference failed (%s: %s) [language=%s, token_len=%d]",
+                    type(exc).__name__,
+                    safe_detail,
+                    prep.language,
+                    len(norm_text),
+                    exc_info=not contains_input,
+                )
+                return {
+                    "raw_text": prep.raw_text,
+                    "cleaned_text": prep.cleaned_text,
+                    "language": prep.language,
+                    "relatability_label": None,
+                    "relatability_confidence": None,
+                    "classification_status": ClassificationStatus.INFERENCE_FAILED.value,
+                    "rejection_reason": f"Statistical classifier inference failed ({type(exc).__name__})."
+                }
 
         # 4. Fallback when model is not fitted
         return {
@@ -214,11 +240,11 @@ class RelatabilityClassifier:
             "rejection_reason": None
         }
 
-    def predict(self, texts: Union[str, List[str]]) -> List[str]:
-        """Simple list prediction interface for backwards compatibility."""
+    def predict(self, texts: Union[str, List[str]]) -> List[Optional[str]]:
+        """Simple list prediction interface for backwards compatibility (returns None when unavailable)."""
         if isinstance(texts, str):
             texts = [texts]
-        return [self.classify_comment(t)["relatability_label"] or "Neutral" for t in texts]
+        return [self.classify_comment(t)["relatability_label"] for t in texts]
 
     def process_comments_pipeline(
         self,

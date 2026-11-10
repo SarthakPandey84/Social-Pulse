@@ -72,6 +72,7 @@ data/processed/*
 models/*.pkl
 models/*.joblib
 models/*.onnx
+models/build_provenance.json
 !models/.gitkeep
 
 # Database files

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from html import escape
+import math
+import re
 from typing import Any, Dict, Optional
 
 import plotly.graph_objects as go
@@ -757,3 +759,290 @@ def render_footer(note: str = "Data-Driven Social Engagement Initiative · Synth
         """,
         unsafe_allow_html=True,
     )
+
+
+_HEX_COLOR_RE = re.compile(r"^#[0-9A-Fa-f]{6}$")
+
+
+def _safe_hex_color(color: str, default: str = "#64748B") -> str:
+    """Validate hex color token to prevent CSS style attribute injection."""
+    candidate = str(color).strip()
+    return candidate if _HEX_COLOR_RE.match(candidate) else default
+
+
+def build_nlp_diagnostic_card_html(
+    eyebrow: str,
+    headline: str,
+    metric_label: str,
+    metric_value: str,
+    accent_color: str,
+    footnote: str = "",
+) -> str:
+    """Build escaped HTML card for Module 3 NLP diagnostic metrics."""
+    safe_color = _safe_hex_color(accent_color)
+    footnote_html = (
+        f'<div style="font-size: 11px; color: #94A3B8; margin-top: 2px;">{escape(str(footnote))}</div>'
+        if footnote
+        else ""
+    )
+    return f"""
+                <div style="background-color: #F8FAFC; border-left: 5px solid {safe_color}; padding: 16px; border-radius: 8px;">
+                    <div style="font-size: 13px; color: #64748B; font-weight: 600;">{escape(str(eyebrow))}</div>
+                    <div style="font-size: 24px; font-weight: 700; color: {safe_color}; margin-top: 4px;">{escape(str(headline))}</div>
+                    <div style="font-size: 13px; color: #475569; margin-top: 4px;">{escape(str(metric_label))} <b>{escape(str(metric_value))}</b></div>
+                    {footnote_html}
+                </div>
+                """
+
+
+def build_ab_experiment_banner_html(
+    exp_id: Any,
+    exp_type_badge: Any,
+    hypothesis: Any,
+    platform: Any,
+    variant_a_label: Any,
+    variant_b_label: Any,
+) -> str:
+    """Build escaped HTML experiment registration banner for Page 04."""
+    return f"""
+        <div style="background-color: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+            <div style="font-size: 13px; font-weight: 700; color: #475569;">
+                EXPERIMENT REGISTRATION: <span style="background-color: #E2E8F0; padding: 2px 8px; border-radius: 4px;">{escape(str(exp_id))}</span> | {escape(str(exp_type_badge))}
+            </div>
+            <div style="font-size: 14px; margin-top: 6px;"><b>Hypothesis:</b> <i>"{escape(str(hypothesis))}"</i></div>
+            <div style="font-size: 13px; color: #64748B; margin-top: 4px;">
+                Platform: <b>{escape(str(platform))}</b> |
+                Control (A): <b>{escape(str(variant_a_label))}</b> |
+                Treatment (B): <b>{escape(str(variant_b_label))}</b> |
+                Observation Horizon: <b>7-day settled post observations (deduplicated)</b>
+            </div>
+        </div>
+        """
+
+
+def build_ab_verdict_card_html(
+    badge_color: str,
+    alpha_val: float,
+    verdict: Any,
+    primary_method: Any,
+    test_statistic: float,
+    effect_size_type: Any,
+    effect_size: float,
+    ci_low: float,
+    ci_high: float,
+    ci_method: Any,
+    unit_of_analysis: Any,
+    cluster_badge: Any,
+) -> str:
+    """Build escaped HTML statistical verdict card for Page 04."""
+    safe_color = _safe_hex_color(badge_color)
+    return f"""
+        <div style="background-color: #F8FAFC; border-left: 5px solid {safe_color}; padding: 16px; border-radius: 8px; margin-top: 12px;">
+            <div style="font-size: 13px; color: #64748B; font-weight: 600;">STATISTICAL VERDICT (α = {escape(str(alpha_val))})</div>
+            <div style="font-size: 20px; font-weight: 700; color: {safe_color}; margin-top: 4px;">{escape(str(verdict))}</div>
+            <div style="font-size: 13px; color: #475569; margin-top: 8px;">
+                <b>Primary Method:</b> {escape(str(primary_method))} |
+                <b>Test Statistic:</b> {escape(f"{float(test_statistic):.4f}")} |
+                <b>Effect Size:</b> {escape(str(effect_size_type))} = {escape(f"{float(effect_size):+.3f}")} |
+                <b>Confidence Interval:</b> [{escape(f"{float(ci_low):.4f}")}, {escape(f"{float(ci_high):.4f}")}] ({escape(str(ci_method))})<br>
+                <b>Unit of Analysis:</b> {escape(str(unit_of_analysis))} |
+                <b>Clustering Handled:</b> {escape(str(cluster_badge))} |
+                <b>Data Provenance:</b> Synthetic Benchmark Fixture
+            </div>
+        </div>
+        """
+
+
+def build_ab_mann_whitney_card_html(p_value: float, mw_sig: Any) -> str:
+    """Build escaped HTML Mann-Whitney secondary diagnostic card for Page 04."""
+    return f"""
+                <div style="background-color: #F1F5F9; border-radius: 6px; padding: 10px; margin-top: 10px; font-size: 13px;">
+                    <b>Non-Parametric Diagnostic (Mann-Whitney U):</b> p = {escape(f"{float(p_value):.5f}")} ({escape(str(mw_sig))})<br>
+                    <span style="color: #64748B;">Evaluates rank distribution stochastic dominance P(X &gt; Y) + 0.5P(X = Y) = 0.5; does not assume equal shapes or medians.</span>
+                </div>
+                """
+
+
+def build_ab_fisher_secondary_card_html(z_stat: float, p_value: float) -> str:
+    """Build escaped HTML secondary asymptotic z-test card for Page 04."""
+    return f"""
+                <div style="background-color: #F1F5F9; border-radius: 6px; padding: 10px; margin-top: 10px; font-size: 13px;">
+                    <b>Secondary Diagnostic (Asymptotic z-test):</b> z = {escape(f"{float(z_stat):.3f}")}, p = {escape(f"{float(p_value):.5f}")}<br>
+                    <span style="color: #64748B;">Retained for diagnostic reference; verdict was governed strictly by Fisher's Exact Test due to sparse cell count.</span>
+                </div>
+                """
+
+
+def build_recommendation_detail_card_html(
+    idx: int,
+    confidence_level: Any,
+    is_synthetic_demonstration: bool,
+    title: Any,
+    category: Any,
+    platform_label: Any,
+    source_label: Any,
+    priority_score: float,
+    suggested_action: Any,
+    reasoning: Any,
+    supporting_evidence: Any,
+    sample_size: Any,
+    unit_of_analysis: Any,
+    adj_p_str: Any,
+    ci_str: Any,
+    expected_impact_direction: Any,
+    limitations_and_caveats: Any,
+    suggested_validation_method: Any,
+) -> str:
+    """Build escaped HTML recommendation card for Page 05."""
+    conf_val = getattr(confidence_level, "value", str(confidence_level)).upper()
+    if conf_val == "HIGH":
+        border_color = "#10B981"
+        conf_badge = '<span style="background-color: #D1FAE5; color: #065F46; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">🟢 HIGH EVIDENCE (DEMO RCT)</span>'
+    elif conf_val == "MEDIUM":
+        border_color = "#F59E0B"
+        conf_badge = '<span style="background-color: #FEF3C7; color: #92400E; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">🟡 MEDIUM EVIDENCE</span>'
+    else:
+        border_color = "#94A3B8"
+        conf_badge = '<span style="background-color: #F1F5F9; color: #475569; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">⚪ EXPLORATORY / LOW</span>'
+
+    demo_pill = (
+        '<span style="background-color: #EDE9FE; color: #5B21B6; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; margin-left: 6px;">SYNTHETIC DEMO</span>'
+        if is_synthetic_demonstration
+        else ""
+    )
+    cat_str = getattr(category, "value", str(category))
+
+    return f"""
+            <div style="background-color: #FFFFFF; border-left: 6px solid {border_color}; border: 1px solid #E2E8F0; border-left-width: 6px; border-radius: 8px; padding: 18px; margin-bottom: 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-size: 16px; font-weight: 700; color: #0F172A;">
+                        #{escape(str(idx))}. {escape(str(title))} {demo_pill}
+                    </div>
+                    <div>{conf_badge}</div>
+                </div>
+                <div style="font-size: 12px; color: #64748B; margin-top: 4px;">
+                    Category: <b>{escape(str(cat_str))}</b> |
+                    Platform: <b>{escape(str(platform_label))}</b> |
+                    Source: <b>{escape(str(source_label))}</b> |
+                    Priority Score: <b>{escape(f"{float(priority_score):.4f}")}</b>
+                </div>
+                <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 12px; margin-top: 10px; font-size: 14px;">
+                    <b>Suggested Action:</b><br>{escape(str(suggested_action))}
+                </div>
+                <div style="margin-top: 10px; font-size: 13px; color: #334155;">
+                    <b>Reasoning:</b> {escape(str(reasoning))}
+                </div>
+                <div style="margin-top: 6px; font-size: 13px; color: #1E293B;">
+                    <b>Supporting Evidence:</b> {escape(str(supporting_evidence))}
+                </div>
+                <div style="margin-top: 6px; font-size: 12px; color: #0284C7; background-color: #F0F9FF; padding: 6px 10px; border-radius: 4px;">
+                    <b>Statistical Metrics:</b> Sample Size = <b>N={escape(str(sample_size))}</b> |
+                    Unit = <b>{escape(str(unit_of_analysis))}</b> |
+                    Holm Adj. p = <b>{escape(str(adj_p_str))}</b> |
+                    95% CI = <b>{escape(str(ci_str))}</b>
+                </div>
+                <div style="margin-top: 6px; font-size: 13px; color: #0369A1;">
+                    <b>Expected Impact:</b> <b>{escape(str(expected_impact_direction))}</b>
+                </div>
+                <div style="margin-top: 8px; font-size: 12px; color: #B45309; background-color: #FFFBEB; padding: 8px; border-radius: 4px;">
+                    <b>Limitations &amp; Caveats:</b> {escape(str(limitations_and_caveats))}
+                </div>
+                <div style="margin-top: 6px; font-size: 12px; color: #047857;">
+                    <b>Recommended Validation:</b> {escape(str(suggested_validation_method))}
+                </div>
+            </div>
+            """
+
+
+def _format_p_value_sci(value: Any, unavailable: str = "N/A (not calculated)") -> str:
+    """Format a p-value safely in scientific notation without calling float(None)."""
+    if value is None or isinstance(value, bool):
+        return unavailable
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return unavailable
+    if not math.isfinite(numeric):
+        return unavailable
+    return f"{numeric:.2e}"
+
+
+def build_dashboard_experiment_card_html(
+    is_randomized: bool,
+    is_significant: bool,
+    experiment_id: Any,
+    name: Any,
+    platform: Any,
+    sample_size: Any,
+    unit_of_analysis: Any,
+    test_name: Any,
+    variant_a: Any,
+    value_a: float,
+    variant_b: Any,
+    value_b: float,
+    relative_lift_pct: float,
+    effect_size: float,
+    effect_size_type: Any,
+    raw_p_value: float,
+    holm_adj_p_value: Any,
+    ci_low: float,
+    ci_high: float,
+    ci_method: Any,
+) -> str:
+    """Build escaped HTML experiment summary card for Page 06."""
+    badge_color = "#10B981" if is_randomized and is_significant else ("#F59E0B" if not is_randomized else "#EF4444")
+    badge_label = (
+        "🟢 RANDOMIZED RCT (STAT. SIG)"
+        if is_randomized and is_significant
+        else ("🟡 OBSERVATIONAL COHORT (NON-RANDOM)" if not is_randomized else "🔴 INCONCLUSIVE")
+    )
+    holm_adj_str = _format_p_value_sci(holm_adj_p_value)
+    return f"""
+            <div style="background-color: #FFFFFF; border-left: 5px solid {badge_color}; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <b>{escape(str(experiment_id))}: {escape(str(name))}</b>
+                    <span style="font-size: 11px; font-weight: 700; color: {badge_color};">{badge_label}</span>
+                </div>
+                <div style="font-size: 12px; color: #64748B; margin-top: 4px;">
+                    Platform: <b>{escape(str(platform))}</b> |
+                    Sample Size: <b>N = {escape(str(sample_size))} posts</b> |
+                    Unit: <b>{escape(str(unit_of_analysis))}</b> |
+                    Test: <b>{escape(str(test_name))}</b>
+                </div>
+                <div style="font-size: 13px; margin-top: 6px; color: #1E293B;">
+                    • <b>Variant A:</b> {escape(str(variant_a))} (Mean: {escape(f"{float(value_a):.4f}")})<br>
+                    • <b>Variant B:</b> {escape(str(variant_b))} (Mean: {escape(f"{float(value_b):.4f}")})<br>
+                    • <b>Observed Relative Lift:</b> <b>{escape(f"{float(relative_lift_pct):+.2f}%")}</b> |
+                    Effect Size: <b>{escape(f"{float(effect_size):.3f}")} ({escape(str(effect_size_type))})</b>
+                </div>
+                <div style="font-size: 12px; margin-top: 6px; color: #0284C7;">
+                    <b>Statistical Inference:</b> Raw p = {escape(f"{float(raw_p_value):.2e}")} |
+                    <b>Holm-Bonferroni Adj. p = {escape(holm_adj_str)}</b> |
+                    95% CI: [{escape(f"{float(ci_low):,.2f}")}, {escape(f"{float(ci_high):,.2f}")}] ({escape(str(ci_method))})
+                </div>
+            </div>
+            """
+
+
+def build_dashboard_recommendation_card_html(
+    idx: int,
+    confidence_level: Any,
+    title: Any,
+    priority_score: float,
+    suggested_action: Any,
+    expected_impact_direction: Any,
+    suggested_validation_method: Any,
+) -> str:
+    """Build escaped HTML recommendation summary card for Page 06."""
+    conf_val = getattr(confidence_level, "value", str(confidence_level)).upper()
+    c_badge = "🟢 HIGH EVIDENCE" if conf_val == "HIGH" else "⚪ EXPLORATORY / LOW"
+    return f"""
+            <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 12px; margin-bottom: 10px;">
+                <div style="display: flex; justify-content: space-between;">
+                    <b>#{escape(str(idx))}. {escape(str(title))}</b>
+                    <span style="font-size: 11px; font-weight: 700;">{c_badge} (Score: {escape(f"{float(priority_score):.4f}")})</span>
+                </div>
+                <div style="font-size: 13px; color: #334155; margin-top: 4px;"><b>Suggested Action:</b> {escape(str(suggested_action))}</div>
+                <div style="font-size: 12px; color: #0284C7; margin-top: 4px;"><b>Expected Impact:</b> {escape(str(expected_impact_direction))} | <b>Recommended Validation:</b> {escape(str(suggested_validation_method))}</div>
+            </div>
+            """

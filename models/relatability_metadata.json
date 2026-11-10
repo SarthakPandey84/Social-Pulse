@@ -1,8 +1,16 @@
 {
   "model_version": "nlp-relatability-v1.0.0",
-  "trained_at": "2026-11-10T02:38:41.750109+00:00",
   "dataset_provenance": "synthetic_illustrative_benchmark",
   "provenance_statement": "Synthetic benchmark comments dataset created for architectural and NLP pipeline demonstration. Evaluation metrics demonstrate statistical separation and baseline comparison, not real-world audience validation.",
+  "metadata_reproducibility": {
+    "artifact_type": "deterministic_model_metadata",
+    "intentionally_variable_fields_excluded": [
+      "trained_at",
+      "saved_at",
+      "analysis_timestamp"
+    ],
+    "runtime_provenance_location": "models/build_provenance.json"
+  },
   "label_provenance": {
     "source_type": "manually_authored_synthetic_benchmark_with_predefined_labels",
     "independent_human_annotated": false,

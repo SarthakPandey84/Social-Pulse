@@ -2,7 +2,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.11%2B%20(tested%203.11.9)-3776AB.svg)](https://www.python.org/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-%3E%3D1.51.0%2C%3C2.0.0-0284C7.svg)](https://streamlit.io/)
-![Tests](https://img.shields.io/badge/Tests-186%20Passing-16A34A.svg)
+![Tests](https://img.shields.io/badge/Tests-196%20Passing-16A34A.svg)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **SocialPulse** is a modular Python Data Science and Decision-Support platform designed to analyze audience relatability, high-intent engagement behavior, controlled creative experimentation, and cohort trajectory forecasting across short-form social media platforms (**Instagram Reels/Carousels** and **YouTube Shorts**).
@@ -124,6 +124,8 @@ flowchart TD
 ```
 SocialPulse/
 │
+├── .github/workflows/
+│   └── ci.yml                                      <- Python 3.11 CI (build, validate, pytest, Streamlit smoke)
 ├── .streamlit/
 │   └── config.toml                                 <- Light workspace + dark slate sidebar palette
 ├── Problem_Statement/
@@ -144,9 +146,10 @@ SocialPulse/
 ├── database/
 │   └── social_analytics.db                         <- Generated SQLite warehouse (gitignored)
 │
-├── models/                                         <- Generated .joblib weights (gitignored) & JSON metadata
+├── models/                                         <- Generated .joblib weights (gitignored) & deterministic JSON metadata
 │   ├── virality_predictor.joblib / virality_predictor_metadata.json
-│   └── relatability_classifier.joblib / relatability_metadata.json
+│   ├── relatability_classifier.joblib / relatability_metadata.json
+│   └── build_provenance.json                       <- Local untracked runtime timestamps & input checksums (gitignored)
 │
 ├── scripts/
 │   ├── build_all_artifacts.py                      <- Idempotent build & verification orchestrator
@@ -189,9 +192,10 @@ SocialPulse/
 ├── docs/
 │   ├── MODULE_6_GROWTH_DASHBOARD.md
 │   └── MODULE_7_TREND_FORECASTING.md
-├── tests/                                          <- 16 automated pytest modules (186 tests)
+├── tests/                                          <- 16 automated pytest modules (196 tests)
 ├── utils/                                          <- Project root & YAML config loader helpers
 ├── config.yaml                                     <- Static reference configuration snapshot (not read by runtime)
+├── constraints.txt                                 <- Verified Python 3.11.9 exact package constraints (cross-OS safe)
 ├── LICENSE                                         <- MIT License (project-owned code & eligible assets)
 ├── requirements.txt                                <- Core runtime dependencies
 ├── requirements-dev.txt                            <- Runtime + pytest + exploratory notebook packages
@@ -221,11 +225,14 @@ Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
 .\.venv\Scripts\Activate.ps1
 
-# Install core runtime dependencies:
-pip install -r requirements.txt
+# Install core runtime dependencies (recommended with verified Python 3.11 constraints):
+pip install -r requirements.txt -c constraints.txt
 
 # Or install runtime + pytest + Jupyter/plotting dependencies:
-pip install -r requirements-dev.txt
+pip install -r requirements-dev.txt -c constraints.txt
+
+# Flexible range installation without constraints is also supported on Python >=3.11:
+# pip install -r requirements.txt
 ```
 
 #### Linux / macOS (Bash / Zsh)
@@ -234,11 +241,13 @@ pip install -r requirements-dev.txt
 cd SocialPulse
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements.txt -c constraints.txt
 ```
 
+> **Dependency Policy:** [`requirements.txt`](requirements.txt) and [`requirements-dev.txt`](requirements-dev.txt) preserve tested bounded version ranges, while [`constraints.txt`](constraints.txt) pins the exact verified Python 3.11.9 package closure (`platform`/`os` markers scope Windows-only packages cleanly for Linux CI).
+
 ### 3. Rebuild All Runtime Artifacts (From Clean Checkout)
-Because generated datasets (`data/processed/*`), trained binaries (`models/*.joblib`), and `database/social_analytics.db` are excluded in `.gitignore`, you **must** build them first from `data/sample/` before launching the Streamlit application:
+Because generated datasets (`data/processed/*`), trained binaries (`models/*.joblib`), `models/build_provenance.json`, and `database/social_analytics.db` are excluded in `.gitignore`, you **must** build them first from `data/sample/` before launching the Streamlit application:
 
 ```powershell
 # 1) Validate sample CSVs, regenerate processed Parquet/CSV files, SQLite DB, and models,
@@ -248,6 +257,10 @@ python scripts/build_all_artifacts.py
 # Optional: validate an already-built workspace without regenerating files:
 python scripts/build_all_artifacts.py --validate-only
 ```
+
+> **Deterministic Metadata & Runtime Provenance Policy:**
+> - **Tracked deterministic metadata** ([`models/virality_predictor_metadata.json`](models/virality_predictor_metadata.json) and [`models/relatability_metadata.json`](models/relatability_metadata.json)) excludes intentionally volatile execution timestamps (`trained_at`) and uses normalized LF line endings so repeated builds produce byte-identical tracked outputs.
+> - **Intentionally variable runtime provenance fields** (`built_at_utc`, `virality_model_trained_at_utc`, `nlp_model_trained_at_utc`, `analysis_timestamp`, `generated_at`) capture real execution timestamps in-memory or in local untracked [`models/build_provenance.json`](models/build_provenance.json) alongside source CSV SHA-256 digests.
 
 ### 4. Launch the SocialPulse Application
 After `python scripts/build_all_artifacts.py` completes, launch from the repository root (`SocialPulse/`) using the unified entrypoint:
@@ -261,13 +274,15 @@ Open **`http://localhost:8501`** in your browser.
 
 ---
 
-## 🧪 Automated Test Suite
+## 🧪 Automated Test Suite & CI
 
-With `requirements-dev.txt` installed, run all **186 automated tests** across Modules 1–7, Phase 3 optimizations, Phase 4 UI shell & views, and the artifact build pipeline:
+With `requirements-dev.txt` (and `constraints.txt`) installed, run all **196 automated tests** across Modules 1–7, Phase 3 optimizations, Phase 4 UI shell & views, HTML escaping, NLP failure-handling, metadata reproducibility, and the artifact build pipeline:
 
 ```powershell
 pytest tests/ -v
 ```
+
+GitHub Actions ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) automates this pipeline on `ubuntu-latest` with **Python 3.11**: installing dependencies via `requirements-dev.txt` + `constraints.txt` (`pip check`), executing `python scripts/build_all_artifacts.py`, verifying zero Git drift on tracked `models/*_metadata.json`, running `--validate-only`, verifying zero compile `SyntaxWarning`/`DeprecationWarning` issues, executing `pytest tests/ -v`, and running a headless `streamlit run streamlit_app.py` health smoke check (`/_stcore/health`).
 
 ---
 
@@ -275,10 +290,9 @@ pytest tests/ -v
 
 1. **Synthetic Offline Benchmark Data:** Included CSV fixtures demonstrate end-to-end statistical, NLP, experimental, and forecasting mechanics; results do not represent empirical measurements from live production creator accounts.
 2. **Placeholder Ingestion Interfaces:** `src/data_ingestion/api_connectors.py` and `src/data_ingestion/data_scraper.py` define schema-compliant interfaces (`status="placeholder"`) without live OAuth/graph credentials or automated browser scraping.
-3. **Artifact Precondition for Page 03:** Run `python scripts/build_all_artifacts.py` before opening `03. Sentiment & Relatability` from a fresh checkout (`build_all_artifacts.py` succeeds standalone prior to launching Streamlit and generates `processed_comments.parquet` + NLP models directly from `data/sample/`; opening locked Page 03 beforehand falls back to raw `sample_comments.csv`, raising `KeyError: 'relatability_label'`).
+3. **Artifact Precondition for Page 03:** Run `python scripts/build_all_artifacts.py` before opening `03. Sentiment & Relatability` from a fresh checkout (`build_all_artifacts.py` succeeds standalone prior to launching Streamlit and generates `processed_comments.parquet` + NLP models directly from `data/sample/`; opening Page 03 beforehand falls back to raw `sample_comments.csv`, raising `KeyError: 'relatability_label'`).
 4. **Static `config.yaml` & Exploratory Notebooks:** `config.yaml` is maintained as a documented reference snapshot; analytical modules use explicit Python constants and schemas. The five notebooks in `notebooks/` are unexecuted exploratory references (`0` stored cell outputs).
-5. **Pre-Existing Locked-File Escape Warning:** `app/pages/04_AB_Testing.py` line 340 contains an unescaped string literal (`$1 - \beta = 80\%$`) inside a locked module file, producing one benign Python `DeprecationWarning: invalid escape sequence '\%'` in test output (with `\b` evaluated inside `\beta`); analytical calculations are unaffected.
-6. **Uncalibrated Uncertainty Bounds:** Residual prediction intervals in Modules 2 and 7 reflect historical dispersion / empirical quantiles rather than calibrated conformal coverage guarantees.
+5. **Uncalibrated Uncertainty Bounds:** Residual prediction intervals in Modules 2 and 7 reflect historical dispersion / empirical quantiles rather than calibrated conformal coverage guarantees.
 
 ---
 

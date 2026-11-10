@@ -11,13 +11,17 @@ Usage:
 
 import argparse
 from contextlib import closing
+from datetime import datetime, timezone
+import hashlib
 import json
 from pathlib import Path
+import platform
 import sqlite3
 import sys
 from typing import Any, Dict, Optional
 
 import pandas as pd
+import sklearn
 
 # Ensure project root is on sys.path before package imports
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -393,13 +397,36 @@ def build_all_artifacts(
     )
     vir_model_path = target_root / "models" / "virality_predictor.joblib"
     vir_meta_path = target_root / "models" / "virality_predictor_metadata.json"
-    predictor.save_model_pipeline(vir_model_path, vir_meta_path)
+    predictor.save_model_pipeline(vir_model_path, vir_meta_path, include_volatile_timestamps=False)
 
     # Stage 4: Module 3 NLP Classifier, Metadata & Processed Comments (read-only on sample_comments.csv)
     nlp_res = run_nlp_pipeline(base_dir=target_root, overwrite_sample=False, seed=42)
 
     # Stage 5: Module 4 A/B Test Observations (read-only on sample_experiments.csv)
     ab_res = generate_ab_fixtures(base_dir=target_root, overwrite_sample=False, seed=42)
+
+    # Stage 5b: Persist truthful runtime build provenance separately in gitignored manifest
+    sample_hashes = {
+        csv_path.name: hashlib.sha256(csv_path.read_bytes()).hexdigest()
+        for csv_path in sorted((target_root / "data" / "sample").glob("*.csv"))
+    }
+    provenance_path = target_root / "models" / "build_provenance.json"
+    provenance_payload = {
+        "built_at_utc": datetime.now(timezone.utc).isoformat(),
+        "virality_model_trained_at_utc": vir_meta.get("trained_at"),
+        "nlp_model_trained_at_utc": nlp_res.get("runtime_provenance", {}).get("trained_at"),
+        "python_version": platform.python_version(),
+        "pandas_version": pd.__version__,
+        "scikit_learn_version": sklearn.__version__,
+        "source_dataset_sha256": sample_hashes,
+        "notes": (
+            "Runtime build provenance containing intentionally variable wall-clock timestamps. "
+            "Excluded from git tracking to keep models/*_metadata.json deterministic."
+        ),
+    }
+    with open(provenance_path, "w", encoding="utf-8", newline="\n") as pf:
+        json.dump(provenance_payload, pf, indent=2)
+        pf.write("\n")
 
     # Stage 6: Strict Post-Build Verification
     verification = verify_generated_artifacts(
@@ -424,6 +451,7 @@ def build_all_artifacts(
             "virality_metrics": vir_meta["candidate_metrics"],
             "nlp_model": str(nlp_res["model_path"]),
             "nlp_metadata": str(nlp_res["metadata_path"]),
+            "build_provenance": str(provenance_path),
             "processed_comments": [str(nlp_res["processed_parquet_path"]), str(nlp_res["processed_csv_path"])],
             "processed_ab_tests": [str(ab_res["obs_parquet_path"]), str(ab_res["obs_csv_path"])],
         },

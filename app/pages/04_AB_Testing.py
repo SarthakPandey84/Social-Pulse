@@ -20,7 +20,14 @@ root_dir = Path(__file__).resolve().parent.parent.parent
 if str(root_dir) not in sys.path:
     sys.path.append(str(root_dir))
 
-from app.components.ui_widgets import render_header, render_metric_card
+from app.components.ui_widgets import (
+    build_ab_experiment_banner_html,
+    build_ab_fisher_secondary_card_html,
+    build_ab_mann_whitney_card_html,
+    build_ab_verdict_card_html,
+    render_header,
+    render_metric_card,
+)
 from src.statistics.ab_testing import ABTestingFramework, ComparisonResult
 from src.data_ingestion.schemas import ExperimentStatus, ExperimentType, StatisticalUnit
 
@@ -76,21 +83,15 @@ with tab1:
     exp_type_badge = "🟢 Randomized Controlled Trial (A/B Test)" if is_randomized else "🟡 Observational Cohort Comparison (Non-Randomized)"
 
     st.markdown(
-        f"""
-        <div style="background-color: #F8FAFC; border: 1px solid #CBD5E1; border-radius: 8px; padding: 14px; margin-bottom: 16px;">
-            <div style="font-size: 13px; font-weight: 700; color: #475569;">
-                EXPERIMENT REGISTRATION: <span style="background-color: #E2E8F0; padding: 2px 8px; border-radius: 4px;">{selected_exp_id}</span> | {exp_type_badge}
-            </div>
-            <div style="font-size: 14px; margin-top: 6px;"><b>Hypothesis:</b> <i>"{exp_meta['hypothesis']}"</i></div>
-            <div style="font-size: 13px; color: #64748B; margin-top: 4px;">
-                Platform: <b>{exp_meta['platform'].title()}</b> | 
-                Control (A): <b>{exp_meta['variant_a_label']}</b> | 
-                Treatment (B): <b>{exp_meta['variant_b_label']}</b> | 
-                Observation Horizon: <b>7-day settled post observations (deduplicated)</b>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
+        build_ab_experiment_banner_html(
+            exp_id=selected_exp_id,
+            exp_type_badge=exp_type_badge,
+            hypothesis=exp_meta["hypothesis"],
+            platform=str(exp_meta["platform"]).title(),
+            variant_a_label=exp_meta["variant_a_label"],
+            variant_b_label=exp_meta["variant_b_label"],
+        ),
+        unsafe_allow_html=True,
     )
 
     if not is_randomized:
@@ -183,22 +184,21 @@ with tab1:
     cluster_badge = "✅ Handled (Cluster-Collapsed)" if test_res.clustering_handled else "⚠️ Ignored (Unclustered Exposure Assumption)"
 
     st.markdown(
-        f"""
-        <div style="background-color: #F8FAFC; border-left: 5px solid {badge_color}; padding: 16px; border-radius: 8px; margin-top: 12px;">
-            <div style="font-size: 13px; color: #64748B; font-weight: 600;">STATISTICAL VERDICT (α = {alpha_val})</div>
-            <div style="font-size: 20px; font-weight: 700; color: {badge_color}; margin-top: 4px;">{test_res.verdict}</div>
-            <div style="font-size: 13px; color: #475569; margin-top: 8px;">
-                <b>Primary Method:</b> {test_res.primary_method} | 
-                <b>Test Statistic:</b> {test_res.test_statistic:.4f} | 
-                <b>Effect Size:</b> {test_res.effect_size_type} = {test_res.effect_size:+.3f} | 
-                <b>Confidence Interval:</b> [{test_res.confidence_interval[0]:.4f}, {test_res.confidence_interval[1]:.4f}] ({test_res.ci_method})<br>
-                <b>Unit of Analysis:</b> {test_res.unit_of_analysis} | 
-                <b>Clustering Handled:</b> {cluster_badge} | 
-                <b>Data Provenance:</b> Synthetic Benchmark Fixture
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True
+        build_ab_verdict_card_html(
+            badge_color=badge_color,
+            alpha_val=alpha_val,
+            verdict=test_res.verdict,
+            primary_method=test_res.primary_method,
+            test_statistic=test_res.test_statistic,
+            effect_size_type=test_res.effect_size_type,
+            effect_size=test_res.effect_size,
+            ci_low=test_res.confidence_interval[0],
+            ci_high=test_res.confidence_interval[1],
+            ci_method=test_res.ci_method,
+            unit_of_analysis=test_res.unit_of_analysis,
+            cluster_badge=cluster_badge,
+        ),
+        unsafe_allow_html=True,
     )
 
     # Additional Non-Parametric & Diagnostic Cards
@@ -207,24 +207,20 @@ with tab1:
         if test_res.mann_whitney_p_value is not None:
             mw_sig = "Significant" if test_res.mann_whitney_p_value < alpha_val else "Not Significant"
             st.markdown(
-                f"""
-                <div style="background-color: #F1F5F9; border-radius: 6px; padding: 10px; margin-top: 10px; font-size: 13px;">
-                    <b>Non-Parametric Diagnostic (Mann-Whitney U):</b> p = {test_res.mann_whitney_p_value:.5f} ({mw_sig})<br>
-                    <span style="color: #64748B;">Evaluates rank distribution stochastic dominance P(X > Y) + 0.5P(X = Y) = 0.5; does not assume equal shapes or medians.</span>
-                </div>
-                """,
-                unsafe_allow_html=True
+                build_ab_mann_whitney_card_html(
+                    p_value=test_res.mann_whitney_p_value,
+                    mw_sig=mw_sig,
+                ),
+                unsafe_allow_html=True,
             )
     with diag_col2:
         if test_res.diagnostic_p_value is not None and test_res.primary_method == "Fisher's Exact Test":
             st.markdown(
-                f"""
-                <div style="background-color: #F1F5F9; border-radius: 6px; padding: 10px; margin-top: 10px; font-size: 13px;">
-                    <b>Secondary Diagnostic (Asymptotic z-test):</b> z = {test_res.diagnostic_test_statistic:.3f}, p = {test_res.diagnostic_p_value:.5f}<br>
-                    <span style="color: #64748B;">Retained for diagnostic reference; verdict was governed strictly by Fisher's Exact Test due to sparse cell count.</span>
-                </div>
-                """,
-                unsafe_allow_html=True
+                build_ab_fisher_secondary_card_html(
+                    z_stat=test_res.diagnostic_test_statistic,
+                    p_value=test_res.diagnostic_p_value,
+                ),
+                unsafe_allow_html=True,
             )
 
     if test_res.warning_messages:
@@ -252,7 +248,7 @@ with tab2:
             title=f"Sample Post Observations per Variant (N = {len(obs_subset)} posts)"
         )
         fig_box.update_layout(height=340, margin=dict(l=20, r=20, t=40, b=20))
-        st.plotly_chart(fig_box, use_container_width=True)
+        st.plotly_chart(fig_box, width="stretch")
 
     with v_col2:
         st.markdown(f"#### Estimated Difference & {int((1-alpha_val)*100)}% CI ({test_res.ci_method})")
@@ -284,7 +280,7 @@ with tab2:
             height=340,
             margin=dict(l=20, r=20, t=40, b=20)
         )
-        st.plotly_chart(fig_ci, use_container_width=True)
+        st.plotly_chart(fig_ci, width="stretch")
 
 
 # --- TAB 3: MULTIPLE TESTING & CORRECTIONS ---
@@ -337,7 +333,7 @@ with tab4:
     st.subheader("4. Pre-Experiment Sample Size & Power Planning")
     st.markdown(
         "Calculate the minimum sample size required per variant before launching an experiment "
-        "to ensure adequate statistical power ($1 - \beta = 80\%$) and avoid inconclusive under-powered tests. "
+        r"to ensure adequate statistical power ($1 - \beta = 80\%$) and avoid inconclusive under-powered tests. "
         "All calculations use standard asymptotic normal approximations."
     )
 

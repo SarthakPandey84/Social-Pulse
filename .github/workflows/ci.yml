@@ -1,0 +1,108 @@
+name: SocialPulse CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-validate-test:
+    name: Build, Validate & Test (Python 3.11)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+            constraints.txt
+
+      - name: Install constrained dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt -c constraints.txt
+          pip check
+
+      - name: Build pipeline artifacts once
+        run: python scripts/build_all_artifacts.py
+
+      - name: Verify deterministic tracked model metadata
+        run: |
+          git diff --exit-code -- models/virality_predictor_metadata.json models/relatability_metadata.json
+
+      - name: Validate built artifacts and schemas
+        run: python scripts/build_all_artifacts.py --validate-only
+
+      - name: Verify zero Python syntax or compile deprecation warnings
+        run: python -W error::SyntaxWarning -W error::DeprecationWarning -m compileall -f -q src scripts app tests streamlit_app.py
+
+      - name: Run full pytest suite
+        run: pytest tests/ -v
+
+      - name: Smoke test Streamlit server startup and health endpoint
+        run: |
+          set -euo pipefail
+          LOG_FILE="$(mktemp)"
+          streamlit run streamlit_app.py \
+            --server.headless true \
+            --server.address 127.0.0.1 \
+            --server.port 8501 \
+            --browser.gatherUsageStats false \
+            > "$LOG_FILE" 2>&1 &
+          ST_PID=$!
+
+          cleanup() {
+            if kill -0 "$ST_PID" 2>/dev/null; then
+              kill "$ST_PID" || true
+              wait "$ST_PID" 2>/dev/null || true
+            fi
+          }
+          trap cleanup EXIT
+
+          python - <<'PY'
+          import time
+          import urllib.request
+
+          health_url = "http://127.0.0.1:8501/_stcore/health"
+          home_url = "http://127.0.0.1:8501/"
+          deadline = time.monotonic() + 30.0
+          last_err = None
+
+          while time.monotonic() < deadline:
+              try:
+                  with urllib.request.urlopen(health_url, timeout=2.0) as resp:
+                      body = resp.read().decode("utf-8", errors="replace").strip()
+                      if resp.status == 200 and body == "ok":
+                          with urllib.request.urlopen(home_url, timeout=5.0) as page:
+                              assert page.status == 200, f"Unexpected HTTP status: {page.status}"
+                          print(f"Streamlit health check passed: status={resp.status}, body={body!r}")
+                          break
+              except Exception as exc:
+                  last_err = exc
+                  time.sleep(0.5)
+          else:
+              raise SystemExit(f"Streamlit server failed to become healthy within 30s: {last_err}")
+          PY
+
+          if ! kill -0 "$ST_PID" 2>/dev/null; then
+            cat "$LOG_FILE"
+            exit 1
+          fi
+          echo "=== Streamlit smoke log ==="
+          cat "$LOG_FILE"

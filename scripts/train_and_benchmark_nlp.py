@@ -452,15 +452,21 @@ def run_nlp_pipeline(
     processed_df.to_parquet(proc_parquet, index=False)
     print(f"Saved processed comments to {proc_csv} and {proc_parquet}")
 
-    # Save model metadata with full audit transparency
+    trained_at_utc = pd.Timestamp.now("UTC").isoformat()
+
+    # Save deterministic model metadata with full audit transparency
     metadata = {
         "model_version": RelatabilityClassifier.MODEL_VERSION,
-        "trained_at": pd.Timestamp.now("UTC").isoformat(),
         "dataset_provenance": "synthetic_illustrative_benchmark",
         "provenance_statement": (
             "Synthetic benchmark comments dataset created for architectural and NLP pipeline demonstration. "
             "Evaluation metrics demonstrate statistical separation and baseline comparison, not real-world audience validation."
         ),
+        "metadata_reproducibility": {
+            "artifact_type": "deterministic_model_metadata",
+            "intentionally_variable_fields_excluded": ["trained_at", "saved_at", "analysis_timestamp"],
+            "runtime_provenance_location": "models/build_provenance.json",
+        },
         "label_provenance": {
             "source_type": "manually_authored_synthetic_benchmark_with_predefined_labels",
             "independent_human_annotated": False,
@@ -497,8 +503,9 @@ def run_nlp_pipeline(
 
     meta_path = target_root / "models" / "relatability_metadata.json"
     meta_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(meta_path, "w", encoding="utf-8") as f:
+    with open(meta_path, "w", encoding="utf-8", newline="\n") as f:
         json.dump(metadata, f, indent=2)
+        f.write("\n")
     print(f"Saved model metadata to {meta_path}")
 
     return {
@@ -508,6 +515,7 @@ def run_nlp_pipeline(
         "processed_parquet_path": proc_parquet,
         "processed_csv_path": proc_csv,
         "metadata": metadata,
+        "runtime_provenance": {"trained_at": trained_at_utc},
     }
 
 

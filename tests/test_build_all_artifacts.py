@@ -1,13 +1,16 @@
 """Tests for scripts/build_all_artifacts.py: clean build, idempotency, and strict failure guards."""
 
 from contextlib import closing
+from datetime import datetime
 import hashlib
+import json
 import os
 from pathlib import Path
 import shutil
 import sqlite3
 import subprocess
 import sys
+import time
 
 import pandas as pd
 import pytest
@@ -298,4 +301,49 @@ def test_build_runs_before_ui_and_resolves_page3_dependency(tmp_path: Path):
         text=True,
     )
     assert postbuild_probe.returncode == 0, postbuild_probe.stderr or postbuild_probe.stdout
+
+
+def test_tracked_model_metadata_is_byte_reproducible_while_preserving_truthful_provenance(tmp_path: Path):
+    """Repeated builds must produce identical tracked JSONs while keeping truthful runtime timestamps separate."""
+    _copy_sample_inputs(tmp_path)
+
+    res1 = build_all_artifacts(root_dir=tmp_path)
+    vir_meta_path = tmp_path / "models" / "virality_predictor_metadata.json"
+    nlp_meta_path = tmp_path / "models" / "relatability_metadata.json"
+    prov_path = tmp_path / "models" / "build_provenance.json"
+
+    vir_bytes_1 = vir_meta_path.read_bytes()
+    nlp_bytes_1 = nlp_meta_path.read_bytes()
+    prov_1 = json.loads(prov_path.read_text(encoding="utf-8"))
+
+    # Also confirm in-memory metrics/metadata still retain truthful runtime timestamps
+    assert "candidate_metrics" in res1["outputs"]["virality_metrics"] or "mae" in res1["outputs"]["virality_metrics"]
+
+    time.sleep(0.05)
+    build_all_artifacts(root_dir=tmp_path)
+
+    vir_bytes_2 = vir_meta_path.read_bytes()
+    nlp_bytes_2 = nlp_meta_path.read_bytes()
+    prov_2 = json.loads(prov_path.read_text(encoding="utf-8"))
+
+    # Tracked JSON metadata artifacts must be byte-for-byte identical with LF endings
+    assert vir_bytes_1 == vir_bytes_2
+    assert nlp_bytes_1 == nlp_bytes_2
+    assert b"\r\n" not in vir_bytes_1 and vir_bytes_1.endswith(b"\n")
+    assert b"\r\n" not in nlp_bytes_1 and nlp_bytes_1.endswith(b"\n")
+
+    vir_meta = json.loads(vir_bytes_1.decode("utf-8"))
+    nlp_meta = json.loads(nlp_bytes_1.decode("utf-8"))
+    assert "trained_at" not in vir_meta
+    assert "trained_at" not in nlp_meta
+    assert "trained_at" in vir_meta["metadata_reproducibility"]["intentionally_variable_fields_excluded"]
+    assert "trained_at" in nlp_meta["metadata_reproducibility"]["intentionally_variable_fields_excluded"]
+
+    # Truthful provenance timestamps must reflect actual distinct build runs
+    t1 = datetime.fromisoformat(prov_1["virality_model_trained_at_utc"])
+    t2 = datetime.fromisoformat(prov_2["virality_model_trained_at_utc"])
+    assert t2 > t1
+    assert datetime.fromisoformat(prov_2["nlp_model_trained_at_utc"]) > datetime.fromisoformat(prov_1["nlp_model_trained_at_utc"])
+    assert prov_1["source_dataset_sha256"] == prov_2["source_dataset_sha256"]
+    assert "sample_posts.csv" in prov_1["source_dataset_sha256"]
 

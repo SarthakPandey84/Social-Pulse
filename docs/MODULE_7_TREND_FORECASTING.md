@@ -3,7 +3,7 @@
 **Product:** *SocialPulse — An Intelligent Social Media Analytics & Engagement Optimization Platform*  
 *(Unlox Data-Driven Social Engagement Initiative)*  
 **Module:** 7 — Trend Forecasting Engine  
-**Status:** Audited, Optimized, UI-Integrated & Verified (40/40 Module 7 Tests Passing; 186/186 Total Repository Tests Passing)
+**Status:** Audited, Optimized, UI-Integrated & Verified (40/40 Module 7 Tests Passing; 196/196 Total Repository Tests Passing)
 
 ---
 
@@ -214,34 +214,34 @@ tests/test_trend_forecaster.py::test_seasonal_naive_vectorized_predict_equivalen
 tests/test_trend_forecaster.py::test_prepare_post_time_series_and_velocity_edge_cases PASSED
 ```
 
-**Full Repository Regression Suite:** **186 passed across Modules 1–7, UI shell, and artifact build verification** (Modules 1–6 remain strictly locked to their verified Phase 4.2 checksums).
+**Full Repository Regression Suite:** **196 passed across Modules 1–7, UI shell/security, NLP/metadata hardening, and artifact build verification.**
 
 ---
 
 ## 6. Baseline Immutability Check (Current Verified 21-File Lock Ledger)
 
-All 21 locked files across Modules 1–6 remain unchanged against their verified Phase 4.2 baseline MD5 prefixes (`app/pages/03_Sentiment_Analysis.py` and `app/pages/06_Growth_Dashboard.py` reflect their approved Phase 4.1 / Phase 4.2 chart-layout updates):
+Twelve of the 21 protected Module 1–6 files remain unchanged against their Phase 4.2 baseline MD5 prefixes. The remaining 9 files contain strictly owner-authorized **Phase A Reliability & Release Hardening** remediations (explicit `INFERENCE_FAILED` NLP failure handling, HTML boundary escaping, deterministic model-metadata separation, invalid escape-sequence cleanup, and `use_container_width=True` -> `width="stretch"` migration) with core analytical calculations, statistical methods, and sample datasets preserved:
 
-| Module | File Path | Locked MD5 Prefix (16 hex) | Status |
-| :--- | :--- | :--- | :--- |
-| **M1** | `src/data_ingestion/schemas.py` | `3546f7a4214c0b26` | **LOCKED** |
-| **M1** | `src/data_ingestion/storage.py` | `cd20024b92849f7e` | **LOCKED** |
-| **M1** | `src/data_ingestion/api_connectors.py` | `23e6ac8373cbad5b` | **LOCKED** |
-| **M1** | `src/data_ingestion/data_validator.py` | `f4529830d062d057` | **LOCKED** |
-| **M1** | `src/analytics/engagement_metrics.py` | `ea763a3ac75d4f29` | **LOCKED** |
-| **M1** | `src/preprocessing/cleaning.py` | `f07e8a899c591226` | **LOCKED** |
-| **M1** | `src/preprocessing/feature_engineering.py` | `72e8c3da2eba1fc9` | **LOCKED** |
-| **M2** | `src/modeling/virality_predictor.py` | `6fded69b4cb710ce` | **LOCKED** |
-| **M3** | `src/nlp/sentiment_analyzer.py` | `b64a2bd4fd7dd5af` | **LOCKED** |
-| **M3** | `src/nlp/relatability_classifier.py` | `2d709b0b90705f7b` | **LOCKED** |
-| **M4** | `src/statistics/ab_testing.py` | `d22e08d98765e8c5` | **LOCKED** |
-| **M5** | `src/recommender/engine.py` | `2bf9ad1177501505` | **LOCKED** |
-| **M5** | `src/recommender/schemas.py` | `17855006e4aa2753` | **LOCKED** |
-| **Pages**| `app/pages/01_Content_Performance.py` | `ffae1b9ad76f6411` | **LOCKED** |
-| **Pages**| `app/pages/02_Virality_Prediction.py` | `96547c884f617b1e` | **LOCKED** |
-| **Pages**| `app/pages/03_Sentiment_Analysis.py` | `f684bb9dde35a0c2` | **LOCKED (Phase 4.1 approved)** |
-| **Pages**| `app/pages/04_AB_Testing.py` | `24443e08e148ddda` | **LOCKED** |
-| **Pages**| `app/pages/05_Recommendations.py` | `458c4b15ddefa1fb` | **LOCKED** |
-| **M6** | `src/dashboard/growth_dashboard_backend.py` | `6b51574e52964abe` | **LOCKED** |
-| **M6** | `app/pages/06_Growth_Dashboard.py` | `86f4ec55fbf50209` | **LOCKED (Phase 4.2 approved)** |
-| **M6** | `tests/test_module6_dashboard.py` | `e171c613f76b5158` | **LOCKED** |
+| Module | File Path | Baseline MD5 (Phase 4.2) | Verified MD5 (16 hex) | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **M1** | `src/data_ingestion/schemas.py` | `3546f7a4214c0b26` | `46cf54b7b0576f32` | **Phase A approved (`INFERENCE_FAILED` status)** |
+| **M1** | `src/data_ingestion/storage.py` | `cd20024b92849f7e` | `cd20024b92849f7e` | **LOCKED (unchanged)** |
+| **M1** | `src/data_ingestion/api_connectors.py` | `23e6ac8373cbad5b` | `23e6ac8373cbad5b` | **LOCKED (unchanged)** |
+| **M1** | `src/data_ingestion/data_validator.py` | `f4529830d062d057` | `f4529830d062d057` | **LOCKED (unchanged)** |
+| **M1** | `src/analytics/engagement_metrics.py` | `ea763a3ac75d4f29` | `ea763a3ac75d4f29` | **LOCKED (unchanged)** |
+| **M1** | `src/preprocessing/cleaning.py` | `f07e8a899c591226` | `f07e8a899c591226` | **LOCKED (unchanged)** |
+| **M1** | `src/preprocessing/feature_engineering.py` | `72e8c3da2eba1fc9` | `72e8c3da2eba1fc9` | **LOCKED (unchanged)** |
+| **M2** | `src/modeling/virality_predictor.py` | `6fded69b4cb710ce` | `99615deb28ffa3eb` | **Phase A approved (deterministic metadata JSON)** |
+| **M3** | `src/nlp/sentiment_analyzer.py` | `b64a2bd4fd7dd5af` | `b64a2bd4fd7dd5af` | **LOCKED (unchanged)** |
+| **M3** | `src/nlp/relatability_classifier.py` | `2d709b0b90705f7b` | `86e081f608a41130` | **Phase A approved (explicit `INFERENCE_FAILED`)** |
+| **M4** | `src/statistics/ab_testing.py` | `d22e08d98765e8c5` | `d22e08d98765e8c5` | **LOCKED (unchanged)** |
+| **M5** | `src/recommender/engine.py` | `2bf9ad1177501505` | `2bf9ad1177501505` | **LOCKED (unchanged)** |
+| **M5** | `src/recommender/schemas.py` | `17855006e4aa2753` | `17855006e4aa2753` | **LOCKED (unchanged)** |
+| **Pages**| `app/pages/01_Content_Performance.py` | `ffae1b9ad76f6411` | `1f66bd2ad6ff9d89` | **Phase A approved (`width="stretch"`)** |
+| **Pages**| `app/pages/02_Virality_Prediction.py` | `96547c884f617b1e` | `fd7b51db786146e4` | **Phase A approved (`width="stretch"`)** |
+| **Pages**| `app/pages/03_Sentiment_Analysis.py` | `f684bb9dde35a0c2` | `e56e89f89fb495a8` | **Phase A approved (HTML escaping, status/confidence UI & `width="stretch"`)** |
+| **Pages**| `app/pages/04_AB_Testing.py` | `24443e08e148ddda` | `d15e62ea124864d7` | **Phase A approved (HTML escaping, warning fix, `width`)** |
+| **Pages**| `app/pages/05_Recommendations.py` | `458c4b15ddefa1fb` | `27a4e3ac7d32e815` | **Phase A approved (HTML escaping)** |
+| **M6** | `src/dashboard/growth_dashboard_backend.py` | `6b51574e52964abe` | `6b51574e52964abe` | **LOCKED (unchanged)** |
+| **M6** | `app/pages/06_Growth_Dashboard.py` | `86f4ec55fbf50209` | `1b0e3656791fd172` | **Phase A approved (HTML escaping & `width="stretch"`)** |
+| **M6** | `tests/test_module6_dashboard.py` | `e171c613f76b5158` | `e171c613f76b5158` | **LOCKED (unchanged)** |

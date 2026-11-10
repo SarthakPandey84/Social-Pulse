@@ -6,6 +6,7 @@ Multi-dimensional NLP analytics distinguishing:
 """
 
 import json
+import math
 from pathlib import Path
 import sys
 import streamlit as st
@@ -17,7 +18,11 @@ root_dir = Path(__file__).resolve().parent.parent.parent
 if str(root_dir) not in sys.path:
     sys.path.append(str(root_dir))
 
-from app.components.ui_widgets import render_header, render_metric_card
+from app.components.ui_widgets import (
+    build_nlp_diagnostic_card_html,
+    render_header,
+    render_metric_card,
+)
 from src.nlp.relatability_classifier import RelatabilityClassifier
 from src.nlp.sentiment_analyzer import SentimentAnalyzer
 from src.nlp.text_preprocessor import TextPreprocessor
@@ -60,17 +65,22 @@ if meta_path.exists():
 
 # 2. Key Metrics Calculation
 total_comments = len(df_comments)
-valid_mask = df_comments["classification_status"] == ClassificationStatus.SUCCESS.value
+status_series = df_comments["classification_status"]
+valid_mask = status_series == ClassificationStatus.SUCCESS.value
 valid_comments = df_comments[valid_mask]
 n_valid = len(valid_comments)
 
-n_relatable = (df_comments["relatability_label"] == RelatabilityLabel.RELATABLE.value).sum()
-n_neutral = (df_comments["relatability_label"] == RelatabilityLabel.NEUTRAL.value).sum()
-n_uncertain = (df_comments["classification_status"] == ClassificationStatus.UNCERTAIN.value).sum()
-n_unsupported = (df_comments["classification_status"].isin([
+# Count successful classifications strictly within valid_comments so failed/invalid rows never enter denominators
+n_relatable = int((valid_comments["relatability_label"] == RelatabilityLabel.RELATABLE.value).sum())
+n_neutral = int((valid_comments["relatability_label"] == RelatabilityLabel.NEUTRAL.value).sum())
+n_uncertain = int((status_series == ClassificationStatus.UNCERTAIN.value).sum())
+n_unsupported = int(status_series.isin([
     ClassificationStatus.UNSUPPORTED_LANGUAGE.value,
-    ClassificationStatus.INSUFFICIENT_CONTEXT.value
-])).sum()
+    ClassificationStatus.INSUFFICIENT_CONTEXT.value,
+    ClassificationStatus.EMPTY_TEXT.value,
+]).sum())
+n_inference_failed = int((status_series == ClassificationStatus.INFERENCE_FAILED.value).sum())
+n_invalid_or_unsupported = n_unsupported + n_inference_failed
 
 # Denominator for relatability percentage: valid evaluatable comments
 relatability_pct = (n_relatable / n_valid * 100.0) if n_valid > 0 else 0.0
@@ -83,13 +93,14 @@ with col2:
 with col3:
     render_metric_card("Neutral Comments", f"{n_neutral:,}")
 with col4:
-    render_metric_card("Uncertain / Unsupported", f"{n_uncertain + n_unsupported:,}")
+    render_metric_card("Uncertain / Unsupported / Failed", f"{n_uncertain + n_invalid_or_unsupported:,}")
 with col5:
     render_metric_card("Relatability Ratio", f"{relatability_pct:.1f}%")
 
 st.caption(
     f"**Note on Denominator:** Relatability percentage is calculated over successfully evaluated comments "
-    f"(N = {n_valid:,}), excluding {n_unsupported} unsupported/insufficient comments and {n_uncertain} ambiguous cases."
+    f"(N = {n_valid:,}), excluding {n_unsupported} unsupported/insufficient/empty comments, "
+    f"{n_inference_failed} inference failures, and {n_uncertain} ambiguous cases."
 )
 
 st.markdown("---")
@@ -114,7 +125,17 @@ with tab1:
     c1, c2 = st.columns(2)
     with c1:
         st.markdown("#### 1. Relatability Distribution")
-        rel_counts = df_comments["relatability_label"].fillna("Excluded").value_counts().reset_index()
+        rel_display_mask = status_series.isin([
+            ClassificationStatus.SUCCESS.value,
+            ClassificationStatus.UNCERTAIN.value,
+        ])
+        rel_counts = (
+            df_comments["relatability_label"]
+            .where(rel_display_mask)
+            .fillna("Excluded")
+            .value_counts()
+            .reset_index()
+        )
         rel_counts.columns = ["Category", "Count"]
         fig_rel = px.pie(
             rel_counts,
@@ -141,7 +162,7 @@ with tab1:
             margin=dict(l=20, r=20, t=24, b=82),
             height=385,
         )
-        st.plotly_chart(fig_rel, use_container_width=True)
+        st.plotly_chart(fig_rel, width="stretch")
 
     with c2:
         st.markdown("#### 2. Sentiment Polarity Breakdown")
@@ -175,7 +196,7 @@ with tab1:
             margin=dict(l=48, r=32, t=24, b=118),
             height=385,
         )
-        st.plotly_chart(fig_sent, use_container_width=True)
+        st.plotly_chart(fig_sent, width="stretch")
 
     st.markdown("#### 3. Cross-Tabulation Heatmap (Relatability × Sentiment)")
     # Pivot table of valid comments
@@ -195,11 +216,16 @@ with tab1:
             color_continuous_scale="Blues"
         )
         fig_heat.update_layout(height=300, margin=dict(l=20, r=28, t=30, b=48))
-        st.plotly_chart(fig_heat, use_container_width=True)
+        st.plotly_chart(fig_heat, width="stretch")
 
     # Platform breakdown
     st.markdown("#### 4. Relatability Across Platforms")
-    plat_stats = df_comments.groupby(["platform", "relatability_label"]).size().reset_index(name="count")
+    plat_stats = (
+        df_comments[rel_display_mask]
+        .groupby(["platform", "relatability_label"])
+        .size()
+        .reset_index(name="count")
+    )
     fig_plat = px.bar(
         plat_stats,
         x="platform",
@@ -224,7 +250,7 @@ with tab1:
         ),
         margin=dict(l=48, r=28, t=48, b=100),
     )
-    st.plotly_chart(fig_plat, use_container_width=True)
+    st.plotly_chart(fig_plat, width="stretch")
 
 
 # --- TAB 2: INTERACTIVE TESTER ---
@@ -255,21 +281,52 @@ with tab2:
 
         res_c1, res_c2, res_c3 = st.columns(3)
         with res_c1:
-            rel_label = rel_diag["relatability_label"] or "None"
-            badge_color = "#10B981" if rel_label == "Relatable" else "#64748B" if rel_label == "Neutral" else "#F59E0B"
+            rel_status = rel_diag["classification_status"]
+            raw_rel_label = rel_diag["relatability_label"]
+            if raw_rel_label:
+                rel_label = raw_rel_label
+            elif rel_status == ClassificationStatus.INFERENCE_FAILED.value:
+                rel_label = "Inference Failed"
+            else:
+                rel_label = "Unavailable"
+            badge_color = (
+                "#10B981"
+                if rel_label == "Relatable"
+                else "#64748B"
+                if rel_label == "Neutral"
+                else "#EF4444"
+                if rel_status == ClassificationStatus.INFERENCE_FAILED.value
+                else "#F59E0B"
+            )
             conf = rel_diag["relatability_confidence"]
-            conf_str = f"{conf:.1%}" if conf is not None else "N/A"
-            conf_desc = "Heuristic rule weight" if conf in [0.92, 0.95] else "Model probability (uncalibrated)"
+            conf_float = None
+            if conf is not None and not isinstance(conf, bool):
+                try:
+                    candidate = float(conf)
+                    if math.isfinite(candidate):
+                        conf_float = candidate
+                except (TypeError, ValueError):
+                    conf_float = None
+            conf_str = f"{conf_float:.1%}" if conf_float is not None else "N/A"
+            if conf_float is None:
+                if rel_status == ClassificationStatus.INFERENCE_FAILED.value:
+                    conf_desc = "Unavailable — statistical inference failed"
+                else:
+                    conf_desc = "Confidence unavailable (not scored)"
+            elif conf_float in [0.92, 0.95]:
+                conf_desc = "Heuristic rule weight"
+            else:
+                conf_desc = "Model probability (uncalibrated)"
             st.markdown(
-                f"""
-                <div style="background-color: #F8FAFC; border-left: 5px solid {badge_color}; padding: 16px; border-radius: 8px;">
-                    <div style="font-size: 13px; color: #64748B; font-weight: 600;">RELATABILITY DIMENSION</div>
-                    <div style="font-size: 24px; font-weight: 700; color: {badge_color}; margin-top: 4px;">{rel_label}</div>
-                    <div style="font-size: 13px; color: #475569; margin-top: 4px;">Classification Confidence: <b>{conf_str}</b></div>
-                    <div style="font-size: 11px; color: #94A3B8; margin-top: 2px;">{conf_desc}</div>
-                </div>
-                """,
-                unsafe_allow_html=True
+                build_nlp_diagnostic_card_html(
+                    eyebrow="RELATABILITY DIMENSION",
+                    headline=rel_label,
+                    metric_label="Classification Confidence:",
+                    metric_value=conf_str,
+                    accent_color=badge_color,
+                    footnote=conf_desc,
+                ),
+                unsafe_allow_html=True,
             )
 
         with res_c2:
@@ -278,29 +335,35 @@ with tab2:
             pol = sent_diag.get("polarity")
             pol_str = f"{pol:+.2f}" if pol is not None else "N/A"
             st.markdown(
-                f"""
-                <div style="background-color: #F8FAFC; border-left: 5px solid {sent_color}; padding: 16px; border-radius: 8px;">
-                    <div style="font-size: 13px; color: #64748B; font-weight: 600;">SENTIMENT DIMENSION</div>
-                    <div style="font-size: 24px; font-weight: 700; color: {sent_color}; margin-top: 4px;">{sent_label}</div>
-                    <div style="font-size: 13px; color: #475569; margin-top: 4px;">Heuristic Valence Score: <b>{pol_str}</b></div>
-                    <div style="font-size: 11px; color: #94A3B8; margin-top: 2px;">Lexicon-derived polarity [-1.0, +1.0]</div>
-                </div>
-                """,
-                unsafe_allow_html=True
+                build_nlp_diagnostic_card_html(
+                    eyebrow="SENTIMENT DIMENSION",
+                    headline=sent_label,
+                    metric_label="Heuristic Valence Score:",
+                    metric_value=pol_str,
+                    accent_color=sent_color,
+                    footnote="Lexicon-derived polarity [-1.0, +1.0]",
+                ),
+                unsafe_allow_html=True,
             )
 
         with res_c3:
             status = rel_diag["classification_status"]
-            status_color = "#10B981" if status == "success" else "#EF4444" if status == "unsupported_language" else "#F59E0B"
+            status_color = (
+                "#10B981"
+                if status == "success"
+                else "#EF4444"
+                if status in ("unsupported_language", ClassificationStatus.INFERENCE_FAILED.value)
+                else "#F59E0B"
+            )
             st.markdown(
-                f"""
-                <div style="background-color: #F8FAFC; border-left: 5px solid {status_color}; padding: 16px; border-radius: 8px;">
-                    <div style="font-size: 13px; color: #64748B; font-weight: 600;">EXECUTION STATUS</div>
-                    <div style="font-size: 24px; font-weight: 700; color: {status_color}; margin-top: 4px;">{status}</div>
-                    <div style="font-size: 13px; color: #475569; margin-top: 4px;">Detected Lang: <b>{rel_diag['language']}</b></div>
-                </div>
-                """,
-                unsafe_allow_html=True
+                build_nlp_diagnostic_card_html(
+                    eyebrow="EXECUTION STATUS",
+                    headline=status,
+                    metric_label="Detected Lang:",
+                    metric_value=str(rel_diag["language"]),
+                    accent_color=status_color,
+                ),
+                unsafe_allow_html=True,
             )
 
         if rel_diag.get("rejection_reason"):
@@ -320,7 +383,18 @@ with tab3:
     with f_col3:
         sent_filter = st.selectbox("Sentiment Filter", ["All", "Positive", "Negative", "Neutral", "Mixed"])
     with f_col4:
-        status_filter = st.selectbox("Status Filter", ["All", "success", "insufficient_context", "unsupported_language", "uncertain"])
+        status_filter = st.selectbox(
+            "Status Filter",
+            [
+                "All",
+                ClassificationStatus.SUCCESS.value,
+                ClassificationStatus.INSUFFICIENT_CONTEXT.value,
+                ClassificationStatus.UNSUPPORTED_LANGUAGE.value,
+                ClassificationStatus.EMPTY_TEXT.value,
+                ClassificationStatus.UNCERTAIN.value,
+                ClassificationStatus.INFERENCE_FAILED.value,
+            ],
+        )
 
     # Search filter
     search_query = st.text_input("Search in comment text:", "")
@@ -345,13 +419,13 @@ with tab3:
         "relatability_label", "relatability_confidence",
         "sentiment_label", "sentiment_score", "classification_status"
     ]
-    st.dataframe(filtered_df[display_cols].head(50), use_container_width=True)
+    st.dataframe(filtered_df[display_cols].head(50), width="stretch")
 
     # Auditing Uncertain and Unsupported records
     with st.expander("🔍 Inspect Uncertain and Rejected Comments for Manual Review"):
         problematic_df = df_comments[df_comments["classification_status"] != ClassificationStatus.SUCCESS.value]
         if not problematic_df.empty:
-            st.dataframe(problematic_df[["comment_id", "comment_text", "language", "classification_status"]], use_container_width=True)
+            st.dataframe(problematic_df[["comment_id", "comment_text", "language", "classification_status"]], width="stretch")
         else:
             st.write("No uncertain or rejected records found.")
 

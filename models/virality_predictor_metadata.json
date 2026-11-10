@@ -1,6 +1,5 @@
 {
   "model_type": "ridge",
-  "trained_at": "2026-11-10T02:38:41.260492+00:00",
   "dataset_provenance": "synthetic_illustrative_benchmark",
   "provenance_statement": "Synthetic benchmark dataset generated for architectural pipeline demonstration. Evaluation demonstrates pipeline mechanics and statistical separation, not empirical real-world validation.",
   "target_observation_window": "Settled snapshot engagement after at least 7 days since publication. Filtered out immature posts under 7 days of observation.",
@@ -54,5 +53,12 @@
     "selection_optimism_risk": "Model selection (choosing Ridge over tree ensembles) was conducted on the same held-out test split. For streaming real-world data, rolling-origin cross-validation (walk-forward evaluation) is recommended.",
     "prediction_interval_validity": "Reported intervals represent approximate empirical residual dispersion bands (+/- q95 or +/- 1.96*RMSE). They are not guaranteed conformal prediction intervals with formal finite-sample coverage guarantees.",
     "sample_size": "N=112 mature posts. Indicative prototype only."
+  },
+  "metadata_reproducibility": {
+    "artifact_type": "deterministic_model_metadata",
+    "intentionally_variable_fields_excluded": [
+      "trained_at"
+    ],
+    "runtime_provenance_location": "models/build_provenance.json"
   }
 }

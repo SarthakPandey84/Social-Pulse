@@ -95,7 +95,7 @@ with tab_forecast:
                 "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
             ], index=6)
 
-        submit_btn = st.form_submit_button("Generate Performance Forecast", use_container_width=True)
+        submit_btn = st.form_submit_button("Generate Performance Forecast", width="stretch")
 
     if submit_btn:
         draft_df = pd.DataFrame([{
@@ -190,7 +190,7 @@ with tab_eval:
             color_continuous_scale="RdBu",
             title="Predictive Impact of Pre-Publication Factors"
         )
-        st.plotly_chart(fig_coef, use_container_width=True)
+        st.plotly_chart(fig_coef, width="stretch")
 
     # Methodological Limitations & Recommendation
     st.markdown("---")
@@ -211,7 +211,7 @@ with tab_expost:
     )
 
     ranked_topics = predictor.rank_topics_by_virality(latest_df)
-    st.dataframe(ranked_topics, use_container_width=True)
+    st.dataframe(ranked_topics, width="stretch")
 
     fig_topics = px.bar(
         ranked_topics,
@@ -221,4 +221,4 @@ with tab_expost:
         color_continuous_scale="Teal",
         title="Mean Engagement Virality Index by Struggle Topic"
     )
-    st.plotly_chart(fig_topics, use_container_width=True)
+    st.plotly_chart(fig_topics, width="stretch")

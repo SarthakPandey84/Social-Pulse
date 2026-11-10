@@ -201,6 +201,7 @@ class ClassificationStatus(str, Enum):
     UNSUPPORTED_LANGUAGE = "unsupported_language"
     EMPTY_TEXT = "empty_text"
     UNCERTAIN = "uncertain"
+    INFERENCE_FAILED = "inference_failed"
 
 
 class SentimentLabel(str, Enum):

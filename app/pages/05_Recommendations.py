@@ -17,7 +17,11 @@ root_dir = Path(__file__).resolve().parent.parent.parent
 if str(root_dir) not in sys.path:
     sys.path.append(str(root_dir))
 
-from app.components.ui_widgets import render_header, render_metric_card
+from app.components.ui_widgets import (
+    build_recommendation_detail_card_html,
+    render_header,
+    render_metric_card,
+)
 from src.recommender.engine import OptimizationRecommender
 from src.recommender.schemas import ConfidenceLevel, RecommendationCategory, EvidenceSource
 
@@ -149,66 +153,36 @@ if not report.recommendations:
     st.info("ℹ️ No recommendations match the selected filters. Try broadening your platform or confidence filter.")
 else:
     for idx, rec in enumerate(report.recommendations, start=1):
-        # Color coding by confidence
-        if rec.confidence_level == ConfidenceLevel.HIGH:
-            border_color = "#10B981"
-            conf_badge = '<span style="background-color: #D1FAE5; color: #065F46; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">🟢 HIGH EVIDENCE (DEMO RCT)</span>'
-        elif rec.confidence_level == ConfidenceLevel.MEDIUM:
-            border_color = "#F59E0B"
-            conf_badge = '<span style="background-color: #FEF3C7; color: #92400E; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">🟡 MEDIUM EVIDENCE</span>'
-        else:
-            border_color = "#94A3B8"
-            conf_badge = '<span style="background-color: #F1F5F9; color: #475569; padding: 3px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">⚪ EXPLORATORY / LOW</span>'
-
         src_label = rec.evidence_source.value.replace("_", " ").title() if isinstance(rec.evidence_source, EvidenceSource) else str(rec.evidence_source)
         plat_label = rec.relevant_platform.title()
 
         ci_str = f"[{rec.confidence_interval[0]:,.2f}, {rec.confidence_interval[1]:,.2f}]" if rec.confidence_interval else "N/A"
         adj_p_str = f"{rec.p_value_adjusted:.2e}" if rec.p_value_adjusted is not None else "N/A"
-        demo_pill = '<span style="background-color: #EDE9FE; color: #5B21B6; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 600; margin-left: 6px;">SYNTHETIC DEMO</span>' if rec.is_synthetic_demonstration else ''
+        conf_val = rec.confidence_level.value if isinstance(rec.confidence_level, ConfidenceLevel) else str(rec.confidence_level)
+        cat_val = rec.category.value if isinstance(rec.category, RecommendationCategory) else str(rec.category)
 
         st.markdown(
-            f"""
-            <div style="background-color: #FFFFFF; border-left: 6px solid {border_color}; border: 1px solid #E2E8F0; border-left-width: 6px; border-radius: 8px; padding: 18px; margin-bottom: 18px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div style="font-size: 16px; font-weight: 700; color: #0F172A;">
-                        #{idx}. {rec.title} {demo_pill}
-                    </div>
-                    <div>{conf_badge}</div>
-                </div>
-                <div style="font-size: 12px; color: #64748B; margin-top: 4px;">
-                    Category: <b>{rec.category.value if isinstance(rec.category, RecommendationCategory) else rec.category}</b> | 
-                    Platform: <b>{plat_label}</b> | 
-                    Source: <b>{src_label}</b> | 
-                    Priority Score: <b>{rec.priority_score:.4f}</b>
-                </div>
-                <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 12px; margin-top: 10px; font-size: 14px;">
-                    <b>Suggested Action:</b><br>{rec.suggested_action}
-                </div>
-                <div style="margin-top: 10px; font-size: 13px; color: #334155;">
-                    <b>Reasoning:</b> {rec.reasoning}
-                </div>
-                <div style="margin-top: 6px; font-size: 13px; color: #1E293B;">
-                    <b>Supporting Evidence:</b> {rec.supporting_evidence}
-                </div>
-                <div style="margin-top: 6px; font-size: 12px; color: #0284C7; background-color: #F0F9FF; padding: 6px 10px; border-radius: 4px;">
-                    <b>Statistical Metrics:</b> Sample Size = <b>N={rec.sample_size}</b> | 
-                    Unit = <b>{rec.unit_of_analysis}</b> | 
-                    Holm Adj. p = <b>{adj_p_str}</b> | 
-                    95% CI = <b>{ci_str}</b>
-                </div>
-                <div style="margin-top: 6px; font-size: 13px; color: #0369A1;">
-                    <b>Expected Impact:</b> <b>{rec.expected_impact_direction}</b>
-                </div>
-                <div style="margin-top: 8px; font-size: 12px; color: #B45309; background-color: #FFFBEB; padding: 8px; border-radius: 4px;">
-                    <b>Limitations & Caveats:</b> {rec.limitations_and_caveats}
-                </div>
-                <div style="margin-top: 6px; font-size: 12px; color: #047857;">
-                    <b>Recommended Validation:</b> {rec.suggested_validation_method}
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
+            build_recommendation_detail_card_html(
+                idx=idx,
+                confidence_level=conf_val,
+                is_synthetic_demonstration=bool(rec.is_synthetic_demonstration),
+                title=rec.title,
+                category=cat_val,
+                platform_label=plat_label,
+                source_label=src_label,
+                priority_score=rec.priority_score,
+                suggested_action=rec.suggested_action,
+                reasoning=rec.reasoning,
+                supporting_evidence=rec.supporting_evidence,
+                sample_size=rec.sample_size,
+                unit_of_analysis=rec.unit_of_analysis,
+                adj_p_str=adj_p_str,
+                ci_str=ci_str,
+                expected_impact_direction=rec.expected_impact_direction,
+                limitations_and_caveats=rec.limitations_and_caveats,
+                suggested_validation_method=rec.suggested_validation_method,
+            ),
+            unsafe_allow_html=True,
         )
 
         with st.expander(f"🔍 Priority Score Breakdown for #{idx} ({rec.recommendation_id})", expanded=False):

@@ -91,7 +91,7 @@ display_columns = [
         "high_intent_completeness", "save_to_share_ratio", "save_share_ratio_status"
     ] if c in filtered_df.columns
 ]
-st.dataframe(filtered_df[display_columns], use_container_width=True)
+st.dataframe(filtered_df[display_columns], width="stretch")
 
 # Visualizations
 col_chart1, col_chart2 = st.columns(2)
@@ -108,7 +108,7 @@ with col_chart1:
             hover_data=["post_id", "platform"],
             title="Video Plays (Views) vs. Screen Displays (Impressions)"
         )
-        st.plotly_chart(fig_views, use_container_width=True)
+        st.plotly_chart(fig_views, width="stretch")
     else:
         st.info("Views and impressions data not available.")
 
@@ -123,6 +123,6 @@ with col_chart2:
             hover_data=["post_id"],
             title="High-Intent Actions (Saves+Shares) vs Likes by Completeness"
         )
-        st.plotly_chart(fig_intent, use_container_width=True)
+        st.plotly_chart(fig_intent, width="stretch")
     else:
         st.info("High-intent metrics not available for current slice.")

@@ -581,8 +581,21 @@ class ViralityPredictor:
             raise ValueError("Predictive model has not been trained yet. Call train_and_evaluate() first.")
         return self.model.predict(df_features)
 
-    def save_model_pipeline(self, model_path: Union[str, Path], metadata_path: Optional[Union[str, Path]] = None) -> Path:
-        """Serialize the trained pipeline and metadata to disk."""
+    def save_model_pipeline(
+        self,
+        model_path: Union[str, Path],
+        metadata_path: Optional[Union[str, Path]] = None,
+        include_volatile_timestamps: bool = False,
+    ) -> Path:
+        """Serialize the trained pipeline and metadata to disk.
+
+        By default (``include_volatile_timestamps=False``), runtime-variable
+        execution timestamps such as ``trained_at`` are omitted from the
+        serialized JSON metadata so tracked model metadata files remain
+        byte-for-byte reproducible across unchanged inputs. Truthful
+        training timestamps remain available in ``self.metadata`` and in the
+        untracked build provenance manifest.
+        """
         if self.model is None:
             raise ValueError("No model trained to save.")
         model_path = Path(model_path)
@@ -593,8 +606,17 @@ class ViralityPredictor:
             metadata_path = Path(metadata_path)
             metadata_path.parent.mkdir(parents=True, exist_ok=True)
             import json
-            with open(metadata_path, "w", encoding="utf-8") as f:
-                json.dump(self.metadata, f, indent=2)
+            serializable_meta = dict(self.metadata)
+            if not include_volatile_timestamps:
+                serializable_meta.pop("trained_at", None)
+                serializable_meta["metadata_reproducibility"] = {
+                    "artifact_type": "deterministic_model_metadata",
+                    "intentionally_variable_fields_excluded": ["trained_at"],
+                    "runtime_provenance_location": "models/build_provenance.json",
+                }
+            with open(metadata_path, "w", encoding="utf-8", newline="\n") as f:
+                json.dump(serializable_meta, f, indent=2)
+                f.write("\n")
 
         return model_path
 

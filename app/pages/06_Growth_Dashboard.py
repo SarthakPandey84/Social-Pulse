@@ -25,9 +25,19 @@ if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
 try:
-    from app.components.ui_widgets import render_header, render_metric_card
+    from app.components.ui_widgets import (
+        build_dashboard_experiment_card_html,
+        build_dashboard_recommendation_card_html,
+        render_header,
+        render_metric_card,
+    )
 except (ImportError, ModuleNotFoundError):
-    from components.ui_widgets import render_header, render_metric_card
+    from components.ui_widgets import (
+        build_dashboard_experiment_card_html,
+        build_dashboard_recommendation_card_html,
+        render_header,
+        render_metric_card,
+    )
 from src.dashboard.growth_dashboard_backend import GrowthDashboardBackend
 from src.recommender.schemas import ConfidenceLevel, RecommendationCategory, EvidenceSource
 
@@ -205,7 +215,7 @@ if len(time_df) > 0:
         )
         fig_views.update_xaxes(automargin=True, title_standoff=6)
         fig_views.update_yaxes(automargin=True)
-        st.plotly_chart(fig_views, use_container_width=True)
+        st.plotly_chart(fig_views, width="stretch")
 
     with trend_tabs[1]:
         fig_eng = go.Figure()
@@ -223,7 +233,7 @@ if len(time_df) > 0:
         )
         fig_eng.update_xaxes(automargin=True, title_standoff=6)
         fig_eng.update_yaxes(automargin=True)
-        st.plotly_chart(fig_eng, use_container_width=True)
+        st.plotly_chart(fig_eng, width="stretch")
 
     with trend_tabs[2]:
         fig_rates = go.Figure()
@@ -249,7 +259,7 @@ if len(time_df) > 0:
         )
         fig_rates.update_xaxes(automargin=True, title_standoff=6)
         fig_rates.update_yaxes(automargin=True)
-        st.plotly_chart(fig_rates, use_container_width=True)
+        st.plotly_chart(fig_rates, width="stretch")
 
     with trend_tabs[3]:
         plat_trend_df = backend.calculate_platform_time_series(filtered_posts, freq=trend_freq)
@@ -267,7 +277,7 @@ if len(time_df) > 0:
             )
             fig_plat.update_xaxes(automargin=True, title_standoff=6)
             fig_plat.update_yaxes(automargin=True)
-            st.plotly_chart(fig_plat, use_container_width=True)
+            st.plotly_chart(fig_plat, width="stretch")
 else:
     st.info("ℹ️ Insufficient data points to construct time-series trend lines for this filter range.")
 
@@ -277,7 +287,7 @@ st.markdown("---")
 st.markdown("## 📱 Section C: Normalized Cross-Platform Comparison")
 
 plat_comp = backend.calculate_platform_comparisons(filtered_posts)
-st.dataframe(plat_comp["summary_table"], use_container_width=True)
+st.dataframe(plat_comp["summary_table"], width="stretch")
 
 for disc in plat_comp["disclosures"]:
     st.caption(f"ℹ️ {disc}")
@@ -300,7 +310,7 @@ if len(plat_comp["summary_table"]) > 1:
         )
         fig_p_eng.update_xaxes(automargin=True, title_standoff=6)
         fig_p_eng.update_yaxes(automargin=True)
-        st.plotly_chart(fig_p_eng, use_container_width=True)
+        st.plotly_chart(fig_p_eng, width="stretch")
 
     with p_chart_col2:
         if len(plat_comp["format_distribution"]) > 0:
@@ -318,7 +328,7 @@ if len(plat_comp["summary_table"]) > 1:
             )
             fig_p_fmt.update_xaxes(automargin=True, title_standoff=6)
             fig_p_fmt.update_yaxes(automargin=True)
-            st.plotly_chart(fig_p_fmt, use_container_width=True)
+            st.plotly_chart(fig_p_fmt, width="stretch")
 
 st.markdown("---")
 
@@ -354,7 +364,7 @@ with c_row1_col1:
                 len=0.80,
             ),
         )
-        st.plotly_chart(fig_topic, use_container_width=True)
+        st.plotly_chart(fig_topic, width="stretch")
 
 with c_row1_col2:
     if "shares" in filtered_posts.columns and "views" in filtered_posts.columns:
@@ -384,7 +394,7 @@ with c_row1_col2:
             ),
             margin=dict(t=56, b=196, l=56, r=36),
         )
-        st.plotly_chart(fig_scatter, use_container_width=True)
+        st.plotly_chart(fig_scatter, width="stretch")
 
 c_row2_col1, c_row2_col2 = st.columns(2)
 with c_row2_col1:
@@ -412,7 +422,7 @@ with c_row2_col1:
                 len=0.78,
             ),
         )
-        st.plotly_chart(fig_dur, use_container_width=True)
+        st.plotly_chart(fig_dur, width="stretch")
 
 with c_row2_col2:
     if len(content_data["by_hook"]) > 0:
@@ -439,7 +449,7 @@ with c_row2_col2:
                 len=0.78,
             ),
         )
-        st.plotly_chart(fig_hook, use_container_width=True)
+        st.plotly_chart(fig_hook, width="stretch")
 
 # Timing Heatmap
 if not content_data["timing_matrix"].empty and "mean" in content_data["timing_matrix"]:
@@ -462,7 +472,7 @@ if not content_data["timing_matrix"].empty and "mean" in content_data["timing_ma
             len=0.82,
         ),
     )
-    st.plotly_chart(fig_heat, use_container_width=True)
+    st.plotly_chart(fig_heat, width="stretch")
 
 st.markdown("---")
 
@@ -488,7 +498,7 @@ if aud_data["has_data"]:
             legend=dict(orientation="h", yanchor="top", y=-0.06, xanchor="center", x=0.5, font=dict(size=11)),
             margin=dict(t=52, b=68, l=20, r=20),
         )
-        st.plotly_chart(fig_sent, use_container_width=True)
+        st.plotly_chart(fig_sent, width="stretch")
 
     with a_col2:
         fig_rel = px.pie(
@@ -504,7 +514,7 @@ if aud_data["has_data"]:
             legend=dict(orientation="h", yanchor="top", y=-0.06, xanchor="center", x=0.5, font=dict(size=11)),
             margin=dict(t=52, b=68, l=20, r=20),
         )
-        st.plotly_chart(fig_rel, use_container_width=True)
+        st.plotly_chart(fig_rel, width="stretch")
 
     if len(aud_data["topic_relatability"]) > 0:
         fig_topic_rel = px.bar(
@@ -524,7 +534,7 @@ if aud_data["has_data"]:
                 len=0.78,
             ),
         )
-        st.plotly_chart(fig_topic_rel, use_container_width=True)
+        st.plotly_chart(fig_topic_rel, width="stretch")
 
     st.info(f"📊 **Empirical Correlation Disclosure:** {aud_data['correlation_text']}")
 else:
@@ -568,40 +578,34 @@ if exp_data["experiments"]:
         )
         fig_forest.update_xaxes(automargin=True, title_standoff=14, title_font_size=10)
         fig_forest.update_yaxes(automargin=True)
-        st.plotly_chart(fig_forest, use_container_width=True)
+        st.plotly_chart(fig_forest, width="stretch")
 
     # Detailed Experiment Cards
     for exp_res in exp_data["experiments"]:
-        badge_color = "#10B981" if exp_res["is_randomized"] and exp_res["is_significant"] else ("#F59E0B" if not exp_res["is_randomized"] else "#EF4444")
-        badge_label = "🟢 RANDOMIZED RCT (STAT. SIG)" if exp_res["is_randomized"] and exp_res["is_significant"] else ("🟡 OBSERVATIONAL COHORT (NON-RANDOM)" if not exp_res["is_randomized"] else "🔴 INCONCLUSIVE")
-
         st.markdown(
-            f"""
-            <div style="background-color: #FFFFFF; border-left: 5px solid {badge_color}; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px; margin-bottom: 12px;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <b>{exp_res['experiment_id']}: {exp_res['name']}</b>
-                    <span style="font-size: 11px; font-weight: 700; color: {badge_color};">{badge_label}</span>
-                </div>
-                <div style="font-size: 12px; color: #64748B; margin-top: 4px;">
-                    Platform: <b>{exp_res['platform']}</b> | 
-                    Sample Size: <b>N = {exp_res['sample_size']} posts</b> | 
-                    Unit: <b>{exp_res['unit_of_analysis']}</b> | 
-                    Test: <b>{exp_res['test_name']}</b>
-                </div>
-                <div style="font-size: 13px; margin-top: 6px; color: #1E293B;">
-                    • <b>Variant A:</b> {exp_res['variant_a']} (Mean: {exp_res['value_a']:.4f})<br>
-                    • <b>Variant B:</b> {exp_res['variant_b']} (Mean: {exp_res['value_b']:.4f})<br>
-                    • <b>Observed Relative Lift:</b> <b>{exp_res['relative_lift_pct']:+.2f}%</b> | 
-                    Effect Size: <b>{exp_res['effect_size']:.3f} ({exp_res['effect_size_type']})</b>
-                </div>
-                <div style="font-size: 12px; margin-top: 6px; color: #0284C7;">
-                    <b>Statistical Inference:</b> Raw p = {exp_res['raw_p_value']:.2e} | 
-                    <b>Holm-Bonferroni Adj. p = {exp_res['holm_adj_p_value']:.2e}</b> | 
-                    95% CI: [{exp_res['confidence_interval'][0]:,.2f}, {exp_res['confidence_interval'][1]:,.2f}] ({exp_res['ci_method']})
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
+            build_dashboard_experiment_card_html(
+                is_randomized=bool(exp_res["is_randomized"]),
+                is_significant=bool(exp_res["is_significant"]),
+                experiment_id=exp_res["experiment_id"],
+                name=exp_res["name"],
+                platform=exp_res["platform"],
+                sample_size=exp_res["sample_size"],
+                unit_of_analysis=exp_res["unit_of_analysis"],
+                test_name=exp_res["test_name"],
+                variant_a=exp_res["variant_a"],
+                value_a=exp_res["value_a"],
+                variant_b=exp_res["variant_b"],
+                value_b=exp_res["value_b"],
+                relative_lift_pct=exp_res["relative_lift_pct"],
+                effect_size=exp_res["effect_size"],
+                effect_size_type=exp_res["effect_size_type"],
+                raw_p_value=exp_res["raw_p_value"],
+                holm_adj_p_value=exp_res["holm_adj_p_value"],
+                ci_low=exp_res["confidence_interval"][0],
+                ci_high=exp_res["confidence_interval"][1],
+                ci_method=exp_res["ci_method"],
+            ),
+            unsafe_allow_html=True,
         )
 else:
     st.info("ℹ️ Experiment dataset is unavailable.")
@@ -641,23 +645,22 @@ if recs_report.recommendations:
         legend=dict(orientation="h", yanchor="top", y=-0.29, xanchor="center", x=0.5, title_text="Confidence:", font=dict(size=11)),
         margin=dict(t=56, b=114, l=20, r=36),
     )
-    st.plotly_chart(fig_recs, use_container_width=True)
+    st.plotly_chart(fig_recs, width="stretch")
 
     # Cards
     for idx, r in enumerate(recs_report.recommendations[:5], 1):
-        c_badge = "🟢 HIGH EVIDENCE" if r.confidence_level == ConfidenceLevel.HIGH else "⚪ EXPLORATORY / LOW"
+        conf_val = r.confidence_level.value if isinstance(r.confidence_level, ConfidenceLevel) else str(r.confidence_level)
         st.markdown(
-            f"""
-            <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 6px; padding: 12px; margin-bottom: 10px;">
-                <div style="display: flex; justify-content: space-between;">
-                    <b>#{idx}. {r.title}</b>
-                    <span style="font-size: 11px; font-weight: 700;">{c_badge} (Score: {r.priority_score:.4f})</span>
-                </div>
-                <div style="font-size: 13px; color: #334155; margin-top: 4px;"><b>Suggested Action:</b> {r.suggested_action}</div>
-                <div style="font-size: 12px; color: #0284C7; margin-top: 4px;"><b>Expected Impact:</b> {r.expected_impact_direction} | <b>Recommended Validation:</b> {r.suggested_validation_method}</div>
-            </div>
-            """,
-            unsafe_allow_html=True
+            build_dashboard_recommendation_card_html(
+                idx=idx,
+                confidence_level=conf_val,
+                title=r.title,
+                priority_score=r.priority_score,
+                suggested_action=r.suggested_action,
+                expected_impact_direction=r.expected_impact_direction,
+                suggested_validation_method=r.suggested_validation_method,
+            ),
+            unsafe_allow_html=True,
         )
 
     # Conflicting Signals Resolution
