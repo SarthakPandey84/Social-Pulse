@@ -1,7 +1,6 @@
 """Prescriptive content recommendation and optimization module."""
 
-from .content_recommender import ContentRecommender
-from .engine import OptimizationRecommender
+from .engine import ContentRecommender, OptimizationRecommender
 from .schemas import (
     ConfidenceLevel,
     ContentRecommendation,

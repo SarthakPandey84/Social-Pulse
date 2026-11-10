@@ -40,7 +40,9 @@ class TextPreprocessor:
         # French indicators
         r"\b(merci|très|tres|avec|pour|c'est|tellement|vrai|aussi|mon|ma|dans|vie|moi|nous|vous)\b",
         # German indicators
-        r"\b(danke|sehr|nicht|aber|genau|meine|mein|wirklich|leben|auch|ich|das|der|die|kenne|aus|eigener|erfahrung|gut)\b"
+        r"\b(danke|sehr|nicht|aber|genau|meine|mein|wirklich|leben|auch|ich|das|der|die|kenne|aus|eigener|erfahrung|gut)\b",
+        # Indonesian social indicators (unambiguous lexical items; requires >=2 hits or script/hint)
+        r"\b(yg|gak|nggak|tidak|banget|yang|dengan|untuk|terima|kasih|kakak|sangat|sekali|karena|bisa|kami|kita|kamu|mantap|keren|bagus|semangat|selalu|aku|udah|belum|pernah|dong|bgt|kalo|sama|mau|bikin|karna|harus|bayar|harga|tiket|aja)\b",
     ]
 
     # Non-Latin unicode blocks (Devanagari, Cyrillic, Arabic, CJK, etc.)

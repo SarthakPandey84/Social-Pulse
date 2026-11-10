@@ -22,7 +22,12 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-from src.data_ingestion.schemas import ExperimentStatus, ExperimentType, StatisticalUnit
+from src.data_ingestion.schemas import (
+    ExperimentStatus,
+    ExperimentType,
+    UNIFIED_EXPERIMENT_FIELDS,
+)
+from src.preprocessing.cleaning import get_latest_posts_view
 
 
 @dataclass
@@ -450,8 +455,9 @@ class ABTestingFramework:
                 experiment_type=experiment_type
             )
 
-        # Welch's t-test (robust against unequal variances)
-        t_stat, t_pval = stats.ttest_ind(clean_a, clean_b, equal_var=False)
+        # Welch's t-test (robust against unequal variances; sign aligned with B - A so positive t means B > A)
+        raw_t_stat, t_pval = stats.ttest_ind(clean_a, clean_b, equal_var=False)
+        t_stat = (-float(raw_t_stat) + 0.0) if np.isfinite(raw_t_stat) else 0.0
 
         # Mann-Whitney U test (non-parametric safeguard against skewed social distributions)
         # Tests stochastic dominance: P(X > Y) + 0.5*P(X == Y) = 0.5
@@ -901,4 +907,299 @@ class ABTestingFramework:
             "effect_size": effect_size,
             "significance_alpha": alpha,
             "adequately_powered": bool(power >= 0.80)
+        }
+
+    # --- 7. EXPERIMENT DESIGN, CREATOR-CLUSTERED INFERENCE & OBSERVATIONAL COHORT EVALUATION ---
+
+    @staticmethod
+    def create_experiment_metadata(
+        *,
+        experiment_id: str,
+        experiment_name: str,
+        hypothesis: str,
+        experiment_type: str,
+        platform: str,
+        variant_a_label: str,
+        variant_b_label: str,
+        primary_metric: str,
+        secondary_metrics: str = "",
+        start_date: str = "",
+        end_date: str = "",
+        experiment_status: str = ExperimentStatus.RUNNING.value,
+    ) -> Dict[str, Any]:
+        """Construct a validated metadata record conforming to UNIFIED_EXPERIMENT_FIELDS."""
+        valid_types = {e.value for e in ExperimentType}
+        e_type = str(experiment_type).strip()
+        if e_type not in valid_types:
+            raise ValueError(f"Unsupported experiment_type '{experiment_type}'. Expected one of {sorted(valid_types)}.")
+        valid_statuses = {s.value for s in ExperimentStatus}
+        e_stat = str(experiment_status).strip()
+        if e_stat not in valid_statuses:
+            raise ValueError(f"Unsupported experiment_status '{experiment_status}'. Expected one of {sorted(valid_statuses)}.")
+        if not experiment_id or not experiment_name or not variant_a_label or not variant_b_label or not primary_metric:
+            raise ValueError("experiment_id, experiment_name, variant labels, and primary_metric must be non-empty.")
+
+        record = {
+            "experiment_id": str(experiment_id).strip(),
+            "experiment_name": str(experiment_name).strip(),
+            "hypothesis": str(hypothesis).strip(),
+            "experiment_type": e_type,
+            "platform": str(platform).strip().lower(),
+            "variant_a_label": str(variant_a_label).strip(),
+            "variant_b_label": str(variant_b_label).strip(),
+            "primary_metric": str(primary_metric).strip(),
+            "secondary_metrics": str(secondary_metrics).strip(),
+            "start_date": str(start_date).strip(),
+            "end_date": str(end_date).strip(),
+            "experiment_status": e_stat,
+        }
+        return {k: record[k] for k in UNIFIED_EXPERIMENT_FIELDS}
+
+    @staticmethod
+    def stratified_randomize_assignment(
+        df: pd.DataFrame,
+        *,
+        strata_cols: Optional[List[str]] = None,
+        variant_a_label: str = "Control (A)",
+        variant_b_label: str = "Treatment (B)",
+        seed: int = 42,
+    ) -> pd.DataFrame:
+        """Assign balanced A/B variants via permuted-block randomization within strata."""
+        if df is None or len(df) == 0:
+            return pd.DataFrame() if df is None else df.copy()
+
+        rng = np.random.default_rng(seed)
+        out = df.copy()
+        assigned = np.empty(len(out), dtype=object)
+
+        valid_strata = [c for c in (strata_cols or []) if c in out.columns]
+        if not valid_strata:
+            indices = np.arange(len(out))
+            perm = rng.permutation(indices)
+            half = len(perm) // 2
+            assigned[perm[:half]] = variant_a_label
+            assigned[perm[half:]] = variant_b_label
+        else:
+            # Map positional indices cleanly per stratum
+            out_reset = out.reset_index(drop=True)
+            for _, grp in out_reset.groupby(valid_strata, dropna=False, sort=True):
+                pos_idx = grp.index.to_numpy()
+                perm = rng.permutation(pos_idx)
+                for rank, p in enumerate(perm):
+                    assigned[p] = variant_a_label if (rank % 2 == 0) else variant_b_label
+
+        out["assigned_variant"] = assigned
+        return out
+
+    def compare_creator_clustered_rates(
+        self,
+        df: pd.DataFrame,
+        *,
+        variant_col: str,
+        variant_a: Any,
+        variant_b: Any,
+        value_col: str,
+        creator_col: str = "creator_pseudo_id",
+        metric_name: Optional[str] = None,
+        alpha: Optional[float] = None,
+        experiment_type: str = ExperimentType.RANDOMIZED_EXPERIMENT.value,
+    ) -> ComparisonResult:
+        """Aggregate posts to unique creators per variant before comparing means to avoid creator pseudoreplication."""
+        if value_col not in df.columns or variant_col not in df.columns:
+            raise ValueError(f"Required columns '{variant_col}' and '{value_col}' missing from DataFrame.")
+
+        sub = df[df[variant_col].isin([variant_a, variant_b])].copy()
+        if "post_id" in sub.columns and sub["post_id"].duplicated().any():
+            if "collection_timestamp" in sub.columns:
+                sub = sub.sort_values("collection_timestamp").groupby("post_id", as_index=False).last()
+            else:
+                sub = sub.drop_duplicates(subset=["post_id"], keep="last")
+
+        sub["_val"] = pd.to_numeric(sub[value_col], errors="coerce")
+        sub = sub.dropna(subset=["_val"])
+
+        has_creator = creator_col in sub.columns and sub[creator_col].notna().any()
+        m_name = metric_name or value_col
+        if not has_creator:
+            res = self.compare_continuous(
+                sub[sub[variant_col] == variant_a]["_val"].to_numpy(),
+                sub[sub[variant_col] == variant_b]["_val"].to_numpy(),
+                metric_name=m_name,
+                variant_a_label=str(variant_a),
+                variant_b_label=str(variant_b),
+                alpha=alpha,
+                experiment_type=experiment_type,
+            )
+            res.clustering_handled = False
+            res.clustering_method = f"Fallback Post-Level (Missing '{creator_col}')"
+            res.warning_messages.append(f"Creator clustering column '{creator_col}' unavailable; fell back to post level.")
+            return res
+
+        sub_c = sub.dropna(subset=[creator_col]).copy()
+        a_sub = sub_c[sub_c[variant_col] == variant_a]
+        b_sub = sub_c[sub_c[variant_col] == variant_b]
+
+        a_creators = a_sub.groupby(creator_col, sort=False)["_val"].mean().to_numpy()
+        b_creators = b_sub.groupby(creator_col, sort=False)["_val"].mean().to_numpy()
+        overlapping_creators = len(set(a_sub[creator_col].unique()) & set(b_sub[creator_col].unique()))
+
+        # Exact unbalanced one-way random-effects ANOVA ICC estimator (Donner & Koval / Searle)
+        grp = sub_c.groupby(creator_col, sort=False)["_val"]
+        grp_stats = grp.agg(n="count", mean="mean")
+        k_clusters = int(len(grp_stats))
+        n_total_obs = int(len(sub_c))
+        m_bar = float(grp_stats["n"].mean()) if k_clusters > 0 else 1.0
+        if k_clusters > 1 and n_total_obs > k_clusters:
+            n_i = grp_stats["n"].to_numpy(dtype=float)
+            means_i = grp_stats["mean"].to_numpy(dtype=float)
+            grand_mean = float(sub_c["_val"].mean())
+            ss_between = float(np.sum(n_i * ((means_i - grand_mean) ** 2)))
+            ss_total = float(np.sum((sub_c["_val"].to_numpy(dtype=float) - grand_mean) ** 2))
+            ss_within = max(0.0, ss_total - ss_between)
+            ms_between = ss_between / (k_clusters - 1)
+            ms_within = ss_within / (n_total_obs - k_clusters)
+            m0 = (n_total_obs - float(np.sum(n_i ** 2)) / n_total_obs) / (k_clusters - 1)
+            sigma_b2 = max(0.0, (ms_between - ms_within) / max(m0, 1e-12))
+            denom_var = sigma_b2 + ms_within
+            icc_est = max(0.0, min(1.0, sigma_b2 / denom_var)) if denom_var > 0 else 0.0
+        else:
+            icc_est = 0.0
+        deff = 1.0 + max(0.0, m_bar - 1.0) * icc_est
+
+        res = self.compare_continuous(
+            a_creators,
+            b_creators,
+            metric_name=m_name,
+            variant_a_label=str(variant_a),
+            variant_b_label=str(variant_b),
+            alpha=alpha,
+            experiment_type=experiment_type,
+        )
+        res.unit_of_analysis = (
+            f"Creator-Cluster Collapsed Unit (N_A={len(a_creators)}, N_B={len(b_creators)} creators "
+            f"across {len(a_sub)} + {len(b_sub)} posts)"
+        )
+        res.clustering_handled = True
+        res.clustering_method = (
+            f"Creator-Level Mean Aggregation (mean posts/creator={m_bar:.2f}, est. ICC={icc_est:.3f}, DEFF={deff:.2f})"
+        )
+        if overlapping_creators > 0:
+            res.warning_messages.append(
+                f"Creator Overlap Disclosure: {overlapping_creators} creator(s) contributed posts to both arms; "
+                "creator-arm means are treated as unpaired unless analyzed via within-creator paired differences."
+            )
+        return res
+
+    def evaluate_observational_cohort(
+        self,
+        df: pd.DataFrame,
+        *,
+        treatment_col: str = "treatment_group",
+        variant_a: str = "unsponsored",
+        variant_b: str = "sponsored",
+        creator_col: str = "creator_pseudo_id",
+        strata_col: str = "follower_count",
+    ) -> Dict[str, Any]:
+        """Evaluate observational A/B cohort (e.g. Sponsored vs Unsponsored) with strict non-causal & clustering guards."""
+        if df is None or len(df) == 0:
+            return {"status": "empty", "comparisons": []}
+
+        work = get_latest_posts_view(df) if "post_id" in df.columns else df.copy()
+        work = work[work[treatment_col].isin([variant_a, variant_b])].copy()
+        if len(work) == 0:
+            return {"status": "empty", "comparisons": []}
+
+        if "likes" in work.columns and "follower_count" in work.columns:
+            foll = pd.to_numeric(work["follower_count"], errors="coerce").to_numpy(dtype="float64", na_value=np.nan)
+            likes = pd.to_numeric(work["likes"], errors="coerce").to_numpy(dtype="float64", na_value=np.nan)
+            with np.errstate(divide="ignore", invalid="ignore"):
+                ratio = (likes / foll) * 1000.0
+            valid_foll = np.isfinite(foll) & (foll > 0.0) & np.isfinite(likes)
+            work["likes_per_1k_followers"] = np.where(valid_foll, ratio, np.nan)
+
+        metrics_to_eval = [m for m in ("likes", "comments_count", "likes_per_1k_followers") if m in work.columns and work[m].notna().any()]
+
+        post_level_results: List[ComparisonResult] = []
+        creator_level_results: List[ComparisonResult] = []
+        for m in metrics_to_eval:
+            sa = pd.to_numeric(work.loc[work[treatment_col] == variant_a, m], errors="coerce").dropna().to_numpy()
+            sb = pd.to_numeric(work.loc[work[treatment_col] == variant_b, m], errors="coerce").dropna().to_numpy()
+            post_level_results.append(
+                self.compare_continuous(
+                    sa,
+                    sb,
+                    metric_name=m,
+                    variant_a_label=variant_a,
+                    variant_b_label=variant_b,
+                    experiment_type=ExperimentType.OBSERVATIONAL_COMPARISON.value,
+                )
+            )
+            creator_level_results.append(
+                self.compare_creator_clustered_rates(
+                    work,
+                    variant_col=treatment_col,
+                    variant_a=variant_a,
+                    variant_b=variant_b,
+                    value_col=m,
+                    creator_col=creator_col,
+                    metric_name=f"{m} (creator-clustered)",
+                    experiment_type=ExperimentType.OBSERVATIONAL_COMPARISON.value,
+                )
+            )
+
+        if post_level_results:
+            self.apply_multiple_testing_correction(post_level_results, method="holm", alpha=self.alpha)
+        if creator_level_results:
+            self.apply_multiple_testing_correction(creator_level_results, method="holm", alpha=self.alpha)
+
+        # Follower-tertile stratification to surface scale confounding
+        tertile_summaries: List[Dict[str, Any]] = []
+        if strata_col in work.columns and "likes" in work.columns:
+            fvals = pd.to_numeric(work[strata_col], errors="coerce").astype("float64")
+            valid_mask = fvals.notna().to_numpy()
+            valid_f = work.loc[valid_mask].copy()
+            if len(valid_f) >= 30 and valid_f[strata_col].nunique() >= 3:
+                valid_f["_tertile"] = pd.qcut(fvals.loc[valid_mask], q=3, labels=["Small", "Mid", "Large"], duplicates="drop")
+                for t_lbl, t_df in valid_f.groupby("_tertile", observed=False):
+                    ta = pd.to_numeric(t_df.loc[t_df[treatment_col] == variant_a, "likes"], errors="coerce").dropna()
+                    tb = pd.to_numeric(t_df.loc[t_df[treatment_col] == variant_b, "likes"], errors="coerce").dropna()
+                    if len(ta) >= 5 and len(tb) >= 5:
+                        t_res = self.compare_continuous(
+                            ta.to_numpy(),
+                            tb.to_numpy(),
+                            metric_name=f"likes ({t_lbl} follower tier)",
+                            variant_a_label=variant_a,
+                            variant_b_label=variant_b,
+                            experiment_type=ExperimentType.OBSERVATIONAL_COMPARISON.value,
+                        )
+                        tertile_summaries.append({
+                            "follower_tier": str(t_lbl),
+                            "n_a": int(t_res.sample_size_a),
+                            "n_b": int(t_res.sample_size_b),
+                            "mean_a": round(t_res.value_a, 2),
+                            "mean_b": round(t_res.value_b, 2),
+                            "relative_lift_pct": round(t_res.relative_lift_pct, 2),
+                            "hedges_g": round(t_res.effect_size, 4),
+                            "p_value": round(t_res.p_value, 6),
+                        })
+
+        return {
+            "experiment_type": ExperimentType.OBSERVATIONAL_COMPARISON.value,
+            "is_causal": False,
+            "n_posts_total": int(len(work)),
+            "n_creators_total": int(work[creator_col].nunique(dropna=True)) if creator_col in work.columns else None,
+            "post_level_comparisons": [r.to_dict() for r in post_level_results],
+            "creator_clustered_comparisons": [r.to_dict() for r in creator_level_results],
+            "follower_tertile_stratified_likes": tertile_summaries,
+            "power_reports": {
+                r.metric_name: self.calculate_approximate_achieved_power_report(
+                    r.sample_size_a, r.sample_size_b, r.effect_size, alpha=self.alpha
+                )
+                for r in creator_level_results
+            },
+            "disclosure": (
+                "STRICT NON-CAUSAL OBSERVATIONAL COHORT: Sponsored vs unsponsored posts are self-selected by creators "
+                "and brand partnerships, not randomized. Follower-tier stratification and creator clustering mitigate "
+                "pseudoreplication but cannot eliminate unmeasured confounding."
+            ),
         }

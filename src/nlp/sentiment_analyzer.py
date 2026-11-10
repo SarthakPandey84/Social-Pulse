@@ -4,7 +4,7 @@ Provides a four-way sentiment dimension (Positive, Negative, Neutral, Mixed) wit
 valence scoring, negation flipping, intensifier boosting, and confidence calibration.
 """
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 import re
 import pandas as pd
 
@@ -199,15 +199,25 @@ class SentimentAnalyzer:
         if text_col not in df_out.columns:
             raise ValueError(f"Column '{text_col}' not found in DataFrame.")
 
-        results = []
-        for idx, row in df_out.iterrows():
-            txt = row[text_col]
-            lang = row[lang_col] if (lang_col and lang_col in df_out.columns and pd.notna(row[lang_col])) else None
-            results.append(self.analyze_text(txt, language_hint=lang))
+        texts = df_out[text_col].tolist()
+        if lang_col and lang_col in df_out.columns:
+            langs = [v if pd.notna(v) else None for v in df_out[lang_col].tolist()]
+        else:
+            langs = [None] * len(texts)
 
-        res_df = pd.DataFrame(results)
-        df_out["sentiment_label"] = res_df["sentiment_label"].values
-        df_out["sentiment_score"] = res_df["polarity"].values
-        df_out["sentiment_confidence"] = res_df["sentiment_confidence"].values
-        df_out["sentiment_status"] = res_df["classification_status"].values
+        labels = []
+        scores = []
+        confs = []
+        statuses = []
+        for txt, lang in zip(texts, langs):
+            res = self.analyze_text(txt, language_hint=lang)
+            labels.append(res["sentiment_label"])
+            scores.append(res["polarity"])
+            confs.append(res["sentiment_confidence"])
+            statuses.append(res["classification_status"])
+
+        df_out["sentiment_label"] = labels
+        df_out["sentiment_score"] = scores
+        df_out["sentiment_confidence"] = confs
+        df_out["sentiment_status"] = statuses
         return df_out
