@@ -5,7 +5,7 @@ from __future__ import annotations
 from html import escape
 import math
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import plotly.graph_objects as go
 import plotly.io as pio
@@ -1046,3 +1046,126 @@ def build_dashboard_recommendation_card_html(
                 <div style="font-size: 12px; color: #0284C7; margin-top: 4px;"><b>Expected Impact:</b> {escape(str(expected_impact_direction))} | <b>Recommended Validation:</b> {escape(str(suggested_validation_method))}</div>
             </div>
             """
+
+
+_PROVENANCE_BADGE_MAP: Dict[str, tuple[str, str]] = {
+    "real_public_data": ("Real Public Data", "teal"),
+    "owner_authorized_data": ("Owner-Authorized Data", "positive"),
+    "synthetic_data": ("Synthetic Benchmark", "warning"),
+    "simulated_data": ("Simulated Benchmark", "warning"),
+    "external_benchmark_unverified": ("External Benchmark (Unverified Origin)", "warning"),
+    "weakly_labelled_data": ("Weakly Labelled Data", "warning"),
+}
+
+_GOVERNANCE_SHORT_TAG: Dict[str, str] = {
+    "VERIFIED_COMMERCIAL_SAFE": "Commercial-Safe",
+    "NON_COMMERCIAL_RESEARCH_ONLY": "Research-Only",
+    "PENDING_REVIEW_WEAKLY_LABELLED": "Pending Review / Weak Labels",
+    "EXTERNAL_BENCHMARK_UNVERIFIED": "Unverified Benchmark",
+    "SYNTHETIC_BENCHMARK": "Synthetic Benchmark",
+    "BLOCKED_MISSING_CREDENTIALS": "Gated / Credentials Missing",
+}
+
+
+def format_dataset_option_label(entry: Dict[str, Any]) -> str:
+    """Return a concise, human-readable label for a dataset selector entry."""
+    ds_id = str(entry.get("dataset_id", "synthetic_demo"))
+    name = str(entry.get("display_name") or ds_id)
+    prov = str(entry.get("provenance") or "synthetic_data").lower()
+    prov_tag = _PROVENANCE_BADGE_MAP.get(prov, ("External Dataset", "neutral"))[0]
+    gov_tier = str(entry.get("governance_tier") or "").strip()
+    gov_tag = _GOVERNANCE_SHORT_TAG.get(gov_tier)
+    tag_text = f"{prov_tag} · {gov_tag}" if (gov_tag and gov_tag.lower() not in prov_tag.lower()) else prov_tag
+    if entry.get("meta_error"):
+        return f"{name} [Metadata Error]"
+    counts = entry.get("row_counts") or {}
+    if isinstance(counts, dict) and counts:
+        if "posts" in counts:
+            size_hint = f" · {int(counts['posts']):,} posts"
+        elif "comments" in counts:
+            size_hint = f" · {int(counts['comments']):,} comments"
+        else:
+            size_hint = ""
+    else:
+        size_hint = ""
+    return f"{name} [{tag_text}{size_hint}]"
+
+
+def render_dataset_selector(
+    available_datasets: List[Dict[str, Any]],
+    all_dataset_ids: Optional[List[str]] = None,
+    key: str = "sp_dataset_selector",
+    label: str = "Active Dataset Corpus:",
+    location: str = "sidebar",
+    help_text: Optional[str] = None,
+) -> str:
+    """Render unified dataset switcher synchronized across pages via ``st.session_state['socialpulse_dataset_id']``."""
+    option_map = {str(item["dataset_id"]): item for item in available_datasets if item.get("dataset_id")}
+    option_ids = list(option_map.keys()) or ["synthetic_demo"]
+
+    current_global = st.session_state.get("socialpulse_dataset_id", option_ids[0])
+    known_universe = set(all_dataset_ids) if all_dataset_ids is not None else set(option_ids)
+
+    # If caller/user explicitly requested an unknown dataset_id not registered anywhere,
+    # surface that exact ID so loader raises DatasetLoadError instead of masking it.
+    if current_global and current_global not in known_universe:
+        return str(current_global)
+
+    target_container = st.sidebar if location == "sidebar" else st
+    if current_global not in option_ids:
+        target_container.caption(
+            f"Note: Active workspace dataset `{current_global}` does not provide this module's table; "
+            f"displaying `{option_ids[0]}` for this view."
+        )
+        default_idx = 0
+    else:
+        default_idx = option_ids.index(current_global)
+
+    selected_id = target_container.selectbox(
+        label,
+        options=option_ids,
+        index=default_idx,
+        format_func=lambda ds_id: format_dataset_option_label(option_map[ds_id]) if ds_id in option_map else str(ds_id),
+        key=key,
+        help=help_text or "Switch between the offline synthetic benchmark fixtures and prepared real/external corpora.",
+    )
+    if selected_id and (selected_id != current_global or current_global in option_ids):
+        st.session_state["socialpulse_dataset_id"] = selected_id
+    return str(selected_id)
+
+
+def render_provenance_banner(meta: Dict[str, Any], extra_note: str = "") -> None:
+    """Render an XSS-safe provenance, governance-tier, license, proxy-metric, and limitation disclosure banner."""
+    prov = str(meta.get("provenance") or "synthetic_data").lower()
+    badge_title, _ = _PROVENANCE_BADGE_MAP.get(prov, ("External Dataset", "info"))
+    name = str(meta.get("display_name") or meta.get("dataset_id") or "Active Corpus")
+    platforms = ", ".join(str(p).title() for p in (meta.get("platforms") or [])) or "Unspecified"
+    license_name = str(meta.get("license_name") or "Unknown")
+    gov_tier = str(meta.get("governance_tier") or "")
+    revision = str(meta.get("pinned_revision") or "N/A")
+
+    parts = [
+        f"Source: {name} | Platforms: {platforms} | Provenance: {prov}"
+        + (f" | Governance Tier: {gov_tier}" if gov_tier else "")
+        + f" | License: {license_name} | Ref: {revision}."
+    ]
+    proxy_metrics = meta.get("proxy_metrics") or {}
+    if isinstance(proxy_metrics, dict) and proxy_metrics:
+        proxy_summary = "; ".join(f"{k}: {v}" for k, v in proxy_metrics.items())
+        parts.append(f"Proxy metrics: {proxy_summary}")
+    limitations = meta.get("limitations") or []
+    if limitations:
+        parts.append("Key caveats: " + " | ".join(str(x) for x in limitations[:3]))
+    if extra_note:
+        parts.append(str(extra_note))
+
+    tone = (
+        "teal"
+        if gov_tier in {"VERIFIED_COMMERCIAL_SAFE", "NON_COMMERCIAL_RESEARCH_ONLY"} or prov in {"real_public_data", "owner_authorized_data"}
+        else "info"
+    )
+    render_info_banner(
+        title=f"Dataset Provenance: {badge_title}" + (f" [{_GOVERNANCE_SHORT_TAG.get(gov_tier, gov_tier)}]" if gov_tier else ""),
+        body=" ".join(parts),
+        tone=tone,
+    )

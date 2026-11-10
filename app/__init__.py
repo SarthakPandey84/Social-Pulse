@@ -1,2 +1,2 @@
-"""Unlox Data-Driven Social Engagement Initiative - Application Package."""
+"""SocialPulse — Data-Driven Social Engagement Initiative Application Package."""
 

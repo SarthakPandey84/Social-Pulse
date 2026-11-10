@@ -10,19 +10,30 @@ Provides evidence-backed, explainable content strategy recommendations:
 from pathlib import Path
 import sys
 import streamlit as st
-import pandas as pd
-import numpy as np
 
 root_dir = Path(__file__).resolve().parent.parent.parent
 if str(root_dir) not in sys.path:
     sys.path.append(str(root_dir))
 
+from app.components.data_loader import (
+    DatasetLoadError,
+    SYNTHETIC_DEMO_DATASET_ID,
+    get_optimization_recommender,
+    list_available_datasets,
+    load_ab_observations_dataset,
+    load_comments_dataset,
+    load_experiments_dataset,
+    load_posts_dataset,
+    load_selected_comments_dataset,
+    load_selected_posts_dataset,
+)
 from app.components.ui_widgets import (
     build_recommendation_detail_card_html,
+    render_dataset_selector,
     render_header,
     render_metric_card,
+    render_provenance_banner,
 )
-from src.recommender.engine import OptimizationRecommender
 from src.recommender.schemas import ConfidenceLevel, RecommendationCategory, EvidenceSource
 
 render_header(
@@ -30,34 +41,75 @@ render_header(
     subtitle="Evidence-based prescriptive intelligence for strategic content creation"
 )
 
-# Provenance & Pipeline Demonstration Notice
-st.info(
-    "ℹ️ **Dataset Provenance & Demonstration Notice:** This recommendation engine operates on **synthetic benchmark fixtures** "
-    "from Modules 1–4 to demonstrate evidence-based prioritization, confidence classification, and experimental proposal generation. "
-    "Observational correlations are strictly separated from experimental evidence and are never presented as proven causal relationships."
+all_datasets = list_available_datasets(root_dir=root_dir)
+posts_datasets = list_available_datasets(root_dir=root_dir, required_table="posts")
+selected_dataset_id = render_dataset_selector(
+    posts_datasets,
+    all_dataset_ids=[d["dataset_id"] for d in all_datasets],
+    key="sp_dataset_selector_p5",
+    location="sidebar",
 )
 
-# 1. Load Multi-Module Datasets
+# 1. Load Multi-Module Datasets via shared cached loaders
 posts_path = root_dir / "data" / "processed" / "processed_posts.parquet"
 comments_path = root_dir / "data" / "processed" / "processed_comments.parquet"
 exp_path = root_dir / "data" / "sample" / "sample_experiments.csv"
 obs_path = root_dir / "data" / "processed" / "processed_ab_tests.parquet"
 
-posts_df = pd.read_parquet(posts_path) if posts_path.exists() else None
-comments_df = pd.read_parquet(comments_path) if comments_path.exists() else None
-exp_df = pd.read_csv(exp_path) if exp_path.exists() else None
-obs_df = pd.read_parquet(obs_path) if obs_path.exists() else None
+active_meta = {"dataset_id": selected_dataset_id, "provenance": "synthetic_data"}
+if selected_dataset_id == SYNTHETIC_DEMO_DATASET_ID:
+    st.info(
+        "ℹ️ **Dataset Provenance & Demonstration Notice:** This recommendation engine operates on **synthetic benchmark fixtures** "
+        "from Modules 1–4 to demonstrate evidence-based prioritization, confidence classification, and experimental proposal generation. "
+        "Observational correlations are strictly separated from experimental evidence and are never presented as proven causal relationships."
+    )
+    posts_df, _ = load_posts_dataset(posts_path, sample_path=None)
+    comments_df, _ = load_comments_dataset(comments_path, sample_path=None)
+    exp_df = load_experiments_dataset(exp_path)
+    obs_df = load_ab_observations_dataset(obs_path)
+else:
+    try:
+        posts_df, active_meta = load_selected_posts_dataset(
+            selected_dataset_id,
+            root_dir=root_dir,
+            columns=[
+                "post_id", "creator_pseudo_id", "platform", "content_type",
+                "topic", "hook_type", "duration_seconds", "posting_hour",
+                "views", "reach", "impressions", "likes", "comments_count",
+                "shares", "saves", "collect_count", "retention_rate",
+                "timestamp", "collection_timestamp", "provenance",
+            ],
+            row_limit=25000,
+        )
+    except DatasetLoadError as exc:
+        st.error(f"❌ Dataset Load Error: {exc}")
+        st.stop()
+    render_provenance_banner(active_meta)
+    comments_df = None
+    if "comments" in active_meta.get("tables", []):
+        try:
+            comments_df, _ = load_selected_comments_dataset(selected_dataset_id, root_dir=root_dir)
+        except DatasetLoadError:
+            comments_df = None
+    exp_df = None
+    obs_df = None
+    if len(posts_df) >= 25000:
+        st.caption("ℹ️ Evaluated deterministically on first 25,000 records of this corpus for interactive responsiveness.")
 
 if posts_df is None and comments_df is None and exp_df is None:
     st.warning("⚠️ No analytical datasets found. Please run the data ingestion and preprocessing pipelines first.")
     st.stop()
 
-# Initialize Engine
-recommender = OptimizationRecommender(
+# Initialize / Reuse Cached Recommender Engine
+recommender = get_optimization_recommender(
     posts_df=posts_df,
     comments_df=comments_df,
     experiments_df=exp_df,
-    observations_df=obs_df
+    observations_df=obs_df,
+    posts_path=posts_path if selected_dataset_id == SYNTHETIC_DEMO_DATASET_ID else None,
+    comments_path=comments_path if selected_dataset_id == SYNTHETIC_DEMO_DATASET_ID else None,
+    exp_path=exp_path if selected_dataset_id == SYNTHETIC_DEMO_DATASET_ID else None,
+    obs_path=obs_path if selected_dataset_id == SYNTHETIC_DEMO_DATASET_ID else None,
 )
 
 # 2. Sidebar / Top Controls
@@ -65,9 +117,10 @@ st.subheader("⚙️ Filter Strategy Recommendations")
 f_col1, f_col2, f_col3 = st.columns(3)
 
 with f_col1:
+    plats_in_df = sorted(posts_df["platform"].dropna().astype(str).str.title().unique().tolist()) if (posts_df is not None and "platform" in posts_df.columns) else ["Instagram", "YouTube"]
     platform_choice = st.selectbox(
         "Target Platform:",
-        ["All Platforms", "Instagram", "YouTube"],
+        ["All Platforms"] + plats_in_df,
         index=0
     )
     selected_platform = None if platform_choice == "All Platforms" else platform_choice.lower()

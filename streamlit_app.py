@@ -19,6 +19,7 @@ root_dir = Path(__file__).resolve().parent
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
+from app.components.data_loader import artifacts_present_and_nonempty, ensure_artifacts_ready
 from app.components.ui_widgets import inject_global_styles
 
 st.set_page_config(
@@ -41,7 +42,23 @@ if logo_path.exists():
         icon_image=str(icon_path) if icon_path.exists() else None,
     )
 
-# Configure logically grouped multi-page navigation (excluding legacy 06_Growth_Analytics redirect)
+# Ensure processed datasets, SQLite warehouse, and trained models are ready before navigation
+try:
+    if artifacts_present_and_nonempty(root_dir):
+        ensure_artifacts_ready(root_dir)
+    else:
+        with st.spinner("Initializing SocialPulse analytical workspace and trained models..."):
+            ensure_artifacts_ready(root_dir)
+except Exception as exc:
+    st.error(
+        "SocialPulse failed to prepare required datasets and ML/NLP model artifacts before startup "
+        f"({type(exc).__name__}: {exc}). Verify inputs in `data/sample/` or run "
+        "`python scripts/build_all_artifacts.py` for diagnostics."
+    )
+    st.exception(exc)
+    st.stop()
+
+# Configure logically grouped multi-page navigation across Home and Modules 1–7
 home_page = st.Page(
     "app/streamlit_app.py",
     title="SocialPulse Hub",
@@ -103,5 +120,7 @@ st.session_state["_socialpulse_pages"] = {
 }
 
 pg = st.navigation(navigation_structure)
-st.sidebar.caption("SocialPulse v1.0 · Synthetic Benchmark Mode")
+active_ds = st.session_state.get("socialpulse_dataset_id", "synthetic_demo")
+mode_label = "Synthetic Benchmark Mode" if active_ds == "synthetic_demo" else f"Dataset: {active_ds}"
+st.sidebar.caption(f"SocialPulse v1.0 · {mode_label}")
 pg.run()

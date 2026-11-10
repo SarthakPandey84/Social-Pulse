@@ -3,7 +3,6 @@
 import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
-import pandas as pd
 import streamlit as st
 
 # Add project root to sys.path
@@ -11,15 +10,24 @@ root_dir = Path(__file__).resolve().parent.parent
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
+from app.components.data_loader import (
+    DatasetLoadError,
+    SYNTHETIC_DEMO_DATASET_ID,
+    list_available_datasets,
+    load_home_summary_kpis,
+    load_selected_comments_dataset,
+    load_selected_posts_dataset,
+)
 from app.components.ui_widgets import (
+    render_dataset_selector,
     render_footer,
     render_header,
     render_info_banner,
     render_metric_card,
+    render_provenance_banner,
     render_section_header,
     render_status_badge,
 )
-from src.analytics.engagement_metrics import EngagementAnalytics
 
 st.set_page_config(
     page_title="SocialPulse Hub — Social Engagement Platform",
@@ -29,22 +37,74 @@ st.set_page_config(
 )
 
 
-@st.cache_data(show_spinner=False)
-def _load_home_summary_kpis(path_str: str, mtime_ns: int, file_size: int) -> Optional[Dict[str, Any]]:
-    """Cache sample dataset KPI summary keyed by file path, mtime, and size."""
-    df_posts = pd.read_csv(path_str)
-    if df_posts.empty:
-        return None
-    return EngagementAnalytics.calculate_summary_kpis(df_posts)
+all_datasets = list_available_datasets(root_dir=root_dir)
+all_dataset_ids = [d["dataset_id"] for d in all_datasets]
+selected_dataset_id = render_dataset_selector(
+    all_datasets,
+    all_dataset_ids=all_dataset_ids,
+    key="sp_dataset_selector_home",
+    location="sidebar",
+)
 
-
-# Load sample data KPIs
+# Load KPIs / metadata for active dataset (fail-loud on corrupt external selection)
 data_path = root_dir / "data" / "sample" / "sample_posts.csv"
-if data_path.exists():
-    data_stat = data_path.stat()
-    kpis = _load_home_summary_kpis(str(data_path), data_stat.st_mtime_ns, data_stat.st_size)
+active_meta: Dict[str, Any] = next(
+    (d for d in all_datasets if d["dataset_id"] == selected_dataset_id),
+    {"dataset_id": selected_dataset_id, "tables": ["posts"]},
+)
+kpis: Optional[Dict[str, Any]] = None
+comments_summary: Optional[Dict[str, Any]] = None
+
+if selected_dataset_id == SYNTHETIC_DEMO_DATASET_ID:
+    kpis = load_home_summary_kpis(data_path)
 else:
-    kpis = None
+    try:
+        if "posts" in active_meta.get("tables", []) or active_meta.get("meta_error"):
+            ext_posts, active_meta = load_selected_posts_dataset(
+                selected_dataset_id,
+                root_dir=root_dir,
+                columns=["post_id", "platform", "views", "likes", "comments_count", "shares", "saves", "collect_count", "retention_rate", "content_type", "provenance"],
+            )
+            tot_posts = int(ext_posts["post_id"].nunique()) if "post_id" in ext_posts.columns else int(len(ext_posts))
+            has_views = "views" in ext_posts.columns and ext_posts["views"].notna().any()
+            tot_views = int(ext_posts["views"].dropna().sum()) if has_views else None
+            has_shares = "shares" in ext_posts.columns and ext_posts["shares"].notna().any()
+            tot_shares = int(ext_posts["shares"].dropna().sum()) if has_shares else 0
+            has_saves = "saves" in ext_posts.columns and ext_posts["saves"].notna().any()
+            tot_saves = int(ext_posts["saves"].dropna().sum()) if has_saves else None
+            has_collect = "collect_count" in ext_posts.columns and ext_posts["collect_count"].notna().any()
+            tot_collects = int(ext_posts["collect_count"].dropna().sum()) if has_collect else None
+            has_ret = "retention_rate" in ext_posts.columns and ext_posts["retention_rate"].notna().any()
+            if has_ret:
+                _mean_ret = float(ext_posts["retention_rate"].dropna().mean())
+                avg_ret = round(_mean_ret * 100.0 if _mean_ret <= 1.0 else _mean_ret, 1)
+            else:
+                avg_ret = None
+            kpis = {
+                "total_posts": tot_posts,
+                "total_views": tot_views,
+                "total_likes": int(ext_posts["likes"].dropna().sum()) if "likes" in ext_posts.columns and ext_posts["likes"].notna().any() else None,
+                "total_shares": tot_shares if has_shares else None,
+                "total_saves": tot_saves,
+                "total_collects_proxy": tot_collects,
+                "avg_retention_pct": avg_ret,
+                "overall_save_to_share_ratio": (
+                    round(tot_saves / max(tot_shares, 1), 2) if (has_saves and has_shares and tot_saves is not None) else None
+                ),
+            }
+        else:
+            ext_comments, active_meta = load_selected_comments_dataset(selected_dataset_id, root_dir=root_dir)
+            comments_summary = {
+                "total_comments": int(len(ext_comments)),
+                "platforms": ", ".join(str(p).title() for p in active_meta.get("platforms") or ["Instagram"]),
+            }
+    except DatasetLoadError as exc:
+        render_header(
+            title="SocialPulse",
+            subtitle="An Intelligent Social Media Analytics & Engagement Optimization Platform.",
+        )
+        st.error(f"❌ Dataset Load Error: {exc}")
+        st.stop()
 
 # Hero Header
 render_header(
@@ -52,33 +112,62 @@ render_header(
     subtitle="An Intelligent Social Media Analytics & Engagement Optimization Platform decoding high-intent audience resonance through statistical modeling, orthogonal NLP, and walk-forward forecasting.",
 )
 
-render_info_banner(
-    title="Benchmark Environment & Methodological Transparency",
-    body=(
-        "SocialPulse replaces vanity-metric guesswork by prioritizing high-intent engagement (Shares & Saves) over passive likes. "
-        "Metrics below summarize the included offline benchmark dataset (data/sample/sample_posts.csv) to demonstrate pipeline mechanics cleanly without fabricating live social API connections."
-    ),
-    tone="teal",
-)
+if selected_dataset_id == SYNTHETIC_DEMO_DATASET_ID:
+    render_info_banner(
+        title="Benchmark Environment & Methodological Transparency",
+        body=(
+            "SocialPulse replaces vanity-metric guesswork by prioritizing high-intent engagement (Shares & Saves) over passive likes. "
+            "Metrics below summarize the included offline benchmark dataset (data/sample/sample_posts.csv) to demonstrate pipeline mechanics cleanly without fabricating live social API connections."
+        ),
+        tone="teal",
+    )
+else:
+    render_provenance_banner(active_meta)
 
-# Section 1: Genuine Platform Benchmark KPIs
+# Section 1: Active Corpus KPIs
 render_section_header(
-    title="Benchmark Dataset Overview",
-    subtitle="Key engagement indicators computed directly from the baseline benchmark post corpus",
-    badge="Offline Benchmark Corpus",
-    badge_tone="accent",
+    title="Benchmark Dataset Overview" if selected_dataset_id == SYNTHETIC_DEMO_DATASET_ID else f"Active Corpus Overview · {active_meta.get('display_name', selected_dataset_id)}",
+    subtitle="Key engagement indicators computed directly from the active SocialPulse corpus",
+    badge="Offline Benchmark Corpus" if selected_dataset_id == SYNTHETIC_DEMO_DATASET_ID else str(active_meta.get("provenance", "external_data")),
+    badge_tone="accent" if selected_dataset_id == SYNTHETIC_DEMO_DATASET_ID else "teal",
 )
 
 if kpis:
+    platforms_label = " + ".join(str(p).title() for p in (active_meta.get("platforms") or ["Instagram", "YouTube"]))
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        render_metric_card("Total Analyzed Posts", f"{kpis['total_posts']:,}", delta="Multi-platform sample")
+        render_metric_card("Total Analyzed Posts", f"{kpis['total_posts']:,}", delta=platforms_label)
     with col2:
-        render_metric_card("Cumulative Reach / Views", f"{kpis['total_views']:,}", delta="Instagram + YouTube")
+        if kpis.get("total_views") is not None:
+            render_metric_card("Cumulative Reach / Views", f"{kpis['total_views']:,}", delta=platforms_label)
+        elif kpis.get("total_likes") is not None:
+            render_metric_card("Cumulative Observed Likes", f"{kpis['total_likes']:,}", delta="Views unavailable (public scrape)")
+        else:
+            render_metric_card("Cumulative Reach / Views", "N/A", delta="Not exposed in corpus")
     with col3:
-        render_metric_card("Average Retention Rate", f"{kpis['avg_retention_pct']}%", delta="Video completion avg")
+        if kpis.get("avg_retention_pct") is not None:
+            render_metric_card("Average Retention Rate", f"{kpis['avg_retention_pct']}%", delta="Video completion avg")
+        elif kpis.get("total_shares") is not None:
+            render_metric_card("Cumulative Shares", f"{kpis['total_shares']:,}", delta="Retention N/A in public scrape")
+        else:
+            render_metric_card("Average Retention Rate", "N/A", delta="Unavailable in public scrape")
     with col4:
-        render_metric_card("Save-to-Share Ratio", f"{kpis['overall_save_to_share_ratio']}x", delta="High-intent balance")
+        if kpis.get("overall_save_to_share_ratio") is not None:
+            render_metric_card("Save-to-Share Ratio", f"{kpis['overall_save_to_share_ratio']}x", delta="High-intent balance")
+        elif kpis.get("total_collects_proxy") is not None:
+            render_metric_card("Collect Count (Proxy)", f"{kpis['total_collects_proxy']:,}", delta="TikTok proxy (not IG saves)")
+        else:
+            render_metric_card("Save-to-Share Ratio", "N/A", delta="Saves N/A on platform")
+elif comments_summary:
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        render_metric_card("Total Analyzed Comments", f"{comments_summary['total_comments']:,}", delta="Module 3 NLP Corpus")
+    with c2:
+        render_metric_card("Platform", comments_summary["platforms"], delta="Comments-only dataset")
+    with c3:
+        render_metric_card("Post Views / Reach", "N/A", delta="Posts table absent")
+    with c4:
+        render_metric_card("Provenance", str(active_meta.get("provenance", "real_public_data")), delta=str(active_meta.get("license_name", "")))
 else:
     st.warning("Sample benchmark dataset not found at `data/sample/sample_posts.csv`.")
 
@@ -239,4 +328,9 @@ with p_col3:
         unsafe_allow_html=True,
     )
 
-render_footer("SocialPulse v1.0 · The Data-Driven Social Engagement Initiative · Synthetic Benchmark Mode")
+footer_mode = (
+    "Synthetic Benchmark Mode"
+    if selected_dataset_id == SYNTHETIC_DEMO_DATASET_ID
+    else f"Active Corpus: {active_meta.get('display_name', selected_dataset_id)} ({active_meta.get('provenance', 'external')})"
+)
+render_footer(f"SocialPulse v1.0 · The Data-Driven Social Engagement Initiative · {footer_mode}")

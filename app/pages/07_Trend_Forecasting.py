@@ -24,28 +24,29 @@ root_dir = Path(__file__).resolve().parent.parent.parent
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
-try:
-    from app.components.ui_widgets import (
-        SOCIALPULSE_PALETTE,
-        apply_plotly_theme,
-        render_footer,
-        render_header,
-        render_metric_card,
-        render_section_header,
-    )
-except (ImportError, ModuleNotFoundError):
-    from components.ui_widgets import (
-        SOCIALPULSE_PALETTE,
-        apply_plotly_theme,
-        render_footer,
-        render_header,
-        render_metric_card,
-        render_section_header,
-    )
+from app.components.data_loader import (
+    DatasetLoadError,
+    SYNTHETIC_DEMO_DATASET_ID,
+    get_trend_forecaster,
+    list_available_datasets,
+    load_posts_dataset,
+    load_selected_daily_summary_dataset,
+    load_selected_posts_dataset,
+    load_trends_dataset,
+)
+from app.components.ui_widgets import (
+    SOCIALPULSE_PALETTE,
+    apply_plotly_theme,
+    render_dataset_selector,
+    render_footer,
+    render_header,
+    render_metric_card,
+    render_provenance_banner,
+    render_section_header,
+)
 
 from src.modeling.trend_forecaster import (
     ForecastModelType,
-    TrendForecaster,
     TrendForecastReport,
     ValidationStatus,
 )
@@ -91,20 +92,9 @@ with st.expander("📋 View Full Methodological Audit Disclosures & Modeling Bou
     )
 
 
-# Cached Data Loaders & Analytical Computations
-@st.cache_data(show_spinner=False)
-def _load_parquet_cached(path_str: str, mtime_ns: int, file_size: int) -> pd.DataFrame:
-    return pd.read_parquet(path_str)
-
-
-@st.cache_data(show_spinner=False)
-def _load_csv_cached(path_str: str, mtime_ns: int, file_size: int) -> pd.DataFrame:
-    return pd.read_csv(path_str)
-
-
-@st.cache_resource
+# Cached Analytical Computations (using shared forecaster resource)
 def get_forecaster():
-    return TrendForecaster(rolling_window=7)
+    return get_trend_forecaster(rolling_window=7)
 
 
 @st.cache_data(show_spinner=False)
@@ -115,6 +105,7 @@ def _run_cohort_forecast_cached(
     cadence: str,
     horizon: int,
     selected_model_value: Optional[str],
+    allow_tiktok: bool = False,
 ) -> TrendForecastReport:
     override = (
         next((m for m in ForecastModelType if m.value == selected_model_value), None)
@@ -128,6 +119,30 @@ def _run_cohort_forecast_cached(
         cadence=cadence,
         horizon=horizon,
         selected_model=override,
+        allow_tiktok=allow_tiktok,
+    )
+
+
+@st.cache_data(show_spinner=False)
+def _run_daily_increment_forecast_cached(
+    daily_df: pd.DataFrame,
+    metric_col: str,
+    platform: str,
+    horizon: int,
+    selected_model_value: Optional[str],
+) -> TrendForecastReport:
+    override = (
+        next((m for m in ForecastModelType if m.value == selected_model_value), None)
+        if selected_model_value is not None
+        else None
+    )
+    return get_forecaster().forecast_daily_increment_series(
+        daily_df=daily_df,
+        metric_col=metric_col,
+        platform=platform,
+        horizon=horizon,
+        selected_model=override,
+        segment_policy="longest_contiguous",
     )
 
 
@@ -226,35 +241,89 @@ def _build_topics_chart_cached(trends_df: pd.DataFrame) -> go.Figure:
     return apply_plotly_theme(fig, height=415)
 
 
+# Unified Workspace Dataset Selector
+all_datasets = list_available_datasets(root_dir=root_dir)
+posts_datasets = list_available_datasets(root_dir=root_dir, required_table="posts")
+selected_dataset_id = render_dataset_selector(
+    posts_datasets,
+    all_dataset_ids=[d["dataset_id"] for d in all_datasets],
+    key="sp_dataset_selector_p7",
+    location="sidebar",
+)
+
 # Load Analytical Datasets
-posts_path = root_dir / "data" / "processed" / "processed_posts.parquet"
-trends_path = root_dir / "data" / "sample" / "sample_trends.csv"
+daily_summary_df = None
+active_meta = None
+if selected_dataset_id == SYNTHETIC_DEMO_DATASET_ID:
+    posts_path = root_dir / "data" / "processed" / "processed_posts.parquet"
+    trends_path = root_dir / "data" / "sample" / "sample_trends.csv"
 
-has_posts = posts_path.exists()
-has_trends = trends_path.exists()
+    posts_df, _ = load_posts_dataset(posts_path, sample_path=None)
+    trends_df = load_trends_dataset(trends_path)
 
-if not has_posts and not has_trends:
-    st.error("❌ Required datasets not found. Please ensure data/processed/ or data/sample/ exist.")
-    st.stop()
-
-if has_posts:
-    p_stat = posts_path.stat()
-    posts_df = _load_parquet_cached(str(posts_path), p_stat.st_mtime_ns, p_stat.st_size)
+    if posts_df is None and trends_df is None:
+        st.error("❌ Required datasets not found. Please ensure data/processed/ or data/sample/ exist.")
+        st.stop()
 else:
-    posts_df = None
-
-if has_trends:
-    t_stat = trends_path.stat()
-    trends_df = _load_csv_cached(str(trends_path), t_stat.st_mtime_ns, t_stat.st_size)
-else:
+    try:
+        posts_df, active_meta = load_selected_posts_dataset(
+            selected_dataset_id,
+            root_dir=root_dir,
+            columns=[
+                "post_id",
+                "platform",
+                "timestamp",
+                "views",
+                "likes",
+                "comments_count",
+                "shares",
+                "saves",
+                "collect_count",
+                "topic",
+                "provenance",
+            ],
+        )
+        daily_summary_df, _ = load_selected_daily_summary_dataset(selected_dataset_id, root_dir=root_dir)
+    except DatasetLoadError as exc:
+        st.error(f"❌ Dataset Load Error: {exc}")
+        st.stop()
     trends_df = None
+    render_provenance_banner(active_meta)
+
+# Determine longitudinal readiness for the active corpus
+has_daily_panel = daily_summary_df is not None and not daily_summary_df.empty
+has_cohort_ts = (
+    posts_df is not None
+    and not posts_df.empty
+    and "timestamp" in posts_df.columns
+    and pd.to_datetime(posts_df["timestamp"], utc=True, errors="coerce").notna().any()
+    and "views" in posts_df.columns
+    and posts_df["views"].notna().any()
+)
+
+if selected_dataset_id != SYNTHETIC_DEMO_DATASET_ID and not has_daily_panel and not has_cohort_ts:
+    st.info(
+        f"ℹ️ **Longitudinal Forecasting Unavailable for `{selected_dataset_id}`:** "
+        "This corpus is a cross-sectional snapshot (lacks sequential daily snapshots or valid publication-cohort "
+        "timestamps with observed views). Select `Synthetic Demo Benchmark` or `TikTok Video Engagement 200K` "
+        "to run rolling-origin walk-forward forecasts."
+    )
+    render_footer("SocialPulse Forecasting Engine · Rolling-Origin Walk-Forward Validation")
+    st.stop()
 
 # --- SIDEBAR: FORECASTING CONTROLS ---
 st.sidebar.markdown("### 📈 Forecasting Controls")
 
+if has_daily_panel:
+    domain_options = ["Daily Panel Increments (Longest Contiguous Segment)", "Publication-Cohort Performance"]
+elif selected_dataset_id == SYNTHETIC_DEMO_DATASET_ID:
+    domain_options = ["Publication-Cohort Performance", "Struggle Keyword Trajectories"]
+else:
+    domain_options = ["Publication-Cohort Performance"]
+
 domain_choice = st.sidebar.radio(
     "Select Forecasting Domain:",
-    ["Publication-Cohort Performance", "Struggle Keyword Trajectories"],
+    domain_options,
     index=0,
 )
 
@@ -269,12 +338,63 @@ model_options = [
     ForecastModelType.SEASONAL_NAIVE.value,
 ]
 
-if domain_choice == "Publication-Cohort Performance":
+if domain_choice == "Daily Panel Increments (Longest Contiguous Segment)":
+    daily_metric_labels = {
+        "daily_views": "Daily Incremental Views (1-Day Non-Negative Snapshot Deltas)",
+        "daily_likes": "Daily Incremental Likes",
+        "daily_comments": "Daily Incremental Comments",
+        "daily_shares": "Daily Incremental Shares",
+        "daily_collects": "Daily Incremental Bookmark Collects (TikTok Proxy Metric)",
+    }
+    avail_daily_keys = [k for k in daily_metric_labels if k in daily_summary_df.columns]
+    selected_daily_metric = st.sidebar.selectbox(
+        "Target Daily Increment Metric:",
+        options=avail_daily_keys,
+        format_func=lambda k: daily_metric_labels[k],
+        index=0,
+    )
+    daily_platform = (
+        str(daily_summary_df["platform"].dropna().iloc[0]).strip().lower()
+        if "platform" in daily_summary_df.columns and daily_summary_df["platform"].notna().any()
+        else "tiktok"
+    )
+    cadence_code = "D"
+    horizon_periods = st.sidebar.slider(
+        "Forecast Horizon (Days Ahead):",
+        min_value=1,
+        max_value=14,
+        value=7,
+        step=1,
+    )
+    chosen_model_str = st.sidebar.selectbox("Forecasting Model:", model_options, index=0)
+    selected_model_value = None if chosen_model_str == "Automatic (Champion Selection)" else chosen_model_str
+    try:
+        with st.spinner("Extracting contiguous segment and executing rolling-origin walk-forward validation..."):
+            report = _run_daily_increment_forecast_cached(
+                daily_df=daily_summary_df,
+                metric_col=selected_daily_metric,
+                platform=daily_platform,
+                horizon=horizon_periods,
+                selected_model_value=selected_model_value,
+            )
+    except ValueError as ve:
+        st.error(f"⚠️ Validation Constraint: {ve}")
+        st.stop()
+
+elif domain_choice == "Publication-Cohort Performance":
     if posts_df is None or len(posts_df) == 0:
         st.error("Processed posts dataset not found.")
         st.stop()
 
-    platform_options = ["Instagram", "YouTube"]
+    raw_plats = (
+        sorted(posts_df["platform"].dropna().astype(str).str.strip().str.lower().unique().tolist())
+        if "platform" in posts_df.columns
+        else ["instagram"]
+    )
+    plat_display_map = {"instagram": "Instagram", "youtube": "YouTube", "tiktok": "TikTok"}
+    platform_options = [plat_display_map.get(p, p.title()) for p in raw_plats]
+    if selected_dataset_id == SYNTHETIC_DEMO_DATASET_ID:
+        platform_options = ["Instagram", "YouTube"]
     selected_platform = st.sidebar.selectbox("Platform Scope (Isolated):", platform_options, index=0)
 
     if selected_platform == "Instagram":
@@ -285,6 +405,16 @@ if domain_choice == "Publication-Cohort Performance":
             "cohort_comments": "Publication Cohort Comments",
             "cohort_shares": "Publication Cohort Shares",
             "cohort_saves": "Publication Cohort Saves",
+            "views_engagement_rate": "Cohort Engagement Rate (% - undefined on zero-post intervals)",
+        }
+    elif selected_platform == "TikTok":
+        metric_labels = {
+            "cohort_views": "Publication Cohort Views (Lifetime views of posts published in interval t)",
+            "available_interactions": "TikTok Available Interactions (Likes + Comments + Shares; Saves unavailable)",
+            "cohort_likes": "Publication Cohort Likes",
+            "cohort_comments": "Publication Cohort Comments",
+            "cohort_shares": "Publication Cohort Shares",
+            "cohort_collects": "TikTok Bookmark Collects (collect_count proxy)",
             "views_engagement_rate": "Cohort Engagement Rate (% - undefined on zero-post intervals)",
         }
     else:
@@ -332,6 +462,7 @@ if domain_choice == "Publication-Cohort Performance":
                 cadence=cadence_code,
                 horizon=horizon_periods,
                 selected_model_value=selected_model_value,
+                allow_tiktok=(selected_platform.lower() == "tiktok"),
             )
     except ValueError as ve:
         st.error(f"⚠️ Validation Constraint: {ve}")
@@ -436,12 +567,18 @@ with kpi_c4:
 # Clean side-by-side Domain & Target Semantics Callouts
 disc_col1, disc_col2 = st.columns(2)
 with disc_col1:
-    if domain_choice == "Publication-Cohort Performance":
+    if domain_choice == "Daily Panel Increments (Longest Contiguous Segment)":
+        st.info(
+            f"📅 **Contiguous Panel Continuity Status:** **{report.coverage_status}**.\n\n"
+            "• Missing crawler/snapshot outage dates are never silently zero-imputed or interpolated.\n"
+            "• Negative inter-day cumulative deltas (user un-likes/deletions/resets) are quarantined prior to daily aggregation."
+        )
+    elif domain_choice == "Publication-Cohort Performance":
         st.warning(
             "⚠️ **EXPOSURE-AGE ACCUMULATION BIAS & UNVERIFIED COVERAGE DISCLOSURE:**\n\n"
-            "- **Exposure Duration Disparity:** Posts published early in the collection window (Sept 1) accumulated lifetime views over "
-            "~63 days before collection on Nov 2–3, whereas late-October cohorts accumulated views over only ~2–3 days. "
-            "Intermediate daily tracking snapshots are absent in the dataset, precluding standardized post-age metrics (e.g. Day 7 views). "
+            "- **Exposure Duration Disparity:** Posts published earlier in the collection window accumulated lifetime views over "
+            "more days than recently published cohorts. "
+            "Intermediate daily tracking snapshots are absent in single-snapshot exports, precluding standardized post-age metrics (e.g. Day 7 views). "
             "Projections represent exploratory descriptive analysis of lifetime views at collection time.\n"
             f"- **Source Ingestion Coverage Status:** **{report.coverage_status}**. "
             "Continuous calendar spans do not verify whether zero-post intervals reflect genuine editorial downtime or unobserved/dropped API records."
@@ -727,6 +864,8 @@ if trends_df is not None and not trends_df.empty:
         st.subheader("Volume Trajectories Across Struggle Topics")
         fig_topics = _build_topics_chart_cached(trends_df)
         st.plotly_chart(fig_topics, width="stretch")
+else:
+    st.info("ℹ️ Struggle-keyword trajectory table (`sample_trends.csv`) is scoped to the Synthetic Demo Benchmark workspace.")
 
 
 # --- SECTION F: METHODOLOGY, STATISTICAL LIMITATIONS & FORMULATIONS ---

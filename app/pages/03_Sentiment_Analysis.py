@@ -5,63 +5,80 @@ Multi-dimensional NLP analytics distinguishing:
 2. Sentiment (emotional valence: Positive, Negative, Neutral, Mixed)
 """
 
-import json
 import math
 from pathlib import Path
 import sys
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 
 root_dir = Path(__file__).resolve().parent.parent.parent
 if str(root_dir) not in sys.path:
     sys.path.append(str(root_dir))
 
+from app.components.data_loader import (
+    DatasetLoadError,
+    SYNTHETIC_DEMO_DATASET_ID,
+    get_relatability_classifier,
+    list_available_datasets,
+    load_comments_dataset,
+    load_json_artifact,
+    load_selected_comments_dataset,
+)
 from app.components.ui_widgets import (
     build_nlp_diagnostic_card_html,
+    render_dataset_selector,
     render_header,
     render_metric_card,
+    render_provenance_banner,
 )
-from src.nlp.relatability_classifier import RelatabilityClassifier
-from src.nlp.sentiment_analyzer import SentimentAnalyzer
-from src.nlp.text_preprocessor import TextPreprocessor
-from src.data_ingestion.schemas import ClassificationStatus, RelatabilityLabel, SentimentLabel
+from src.data_ingestion.schemas import ClassificationStatus, RelatabilityLabel
 
 render_header(
     title="Module 3: Audience Sentiment & Relatability",
     subtitle="Orthogonal NLP evaluation separating authentic problem identification from emotional polarity"
 )
 
-# Provenance & Pipeline Demonstration Notice
-st.info(
-    "ℹ️ **Dataset Provenance & Demonstration Notice:** This module runs on a **synthetic benchmark comments dataset** "
-    "designed to demonstrate multi-tier NLP pipelines, language safety guards, and orthogonal dimension separation. "
-    "Evaluation metrics demonstrate statistical mechanics and baseline comparison, not empirical real-world validation."
+all_datasets = list_available_datasets(root_dir=root_dir)
+comment_datasets = list_available_datasets(root_dir=root_dir, required_table="comments")
+selected_dataset_id = render_dataset_selector(
+    comment_datasets,
+    all_dataset_ids=[d["dataset_id"] for d in all_datasets],
+    key="sp_dataset_selector_p3",
+    location="sidebar",
 )
 
-# 1. Load Data & Model Metadata
+# 1. Load Data & Model Metadata via shared cached loaders
 processed_path = root_dir / "data" / "processed" / "processed_comments.parquet"
 sample_path = root_dir / "data" / "sample" / "sample_comments.csv"
 model_path = root_dir / "models" / "relatability_classifier.joblib"
 meta_path = root_dir / "models" / "relatability_metadata.json"
 
-if processed_path.exists():
-    df_comments = pd.read_parquet(processed_path)
-elif sample_path.exists():
-    df_comments = pd.read_csv(sample_path)
+active_meta = {"dataset_id": selected_dataset_id, "provenance": "synthetic_data"}
+if selected_dataset_id == SYNTHETIC_DEMO_DATASET_ID:
+    st.info(
+        "ℹ️ **Dataset Provenance & Demonstration Notice:** This module runs on a **synthetic benchmark comments dataset** "
+        "designed to demonstrate multi-tier NLP pipelines, language safety guards, and orthogonal dimension separation. "
+        "Evaluation metrics demonstrate statistical mechanics and baseline comparison, not empirical real-world validation."
+    )
+    df_comments, _ = load_comments_dataset(processed_path, sample_path)
+    if df_comments is None:
+        st.warning("Comments dataset not found. Please run the ingestion and benchmark pipeline.")
+        st.stop()
 else:
-    st.warning("Comments dataset not found. Please run the ingestion and benchmark pipeline.")
-    st.stop()
+    try:
+        df_comments, active_meta = load_selected_comments_dataset(selected_dataset_id, root_dir=root_dir)
+    except DatasetLoadError as exc:
+        st.error(f"❌ Dataset Load Error: {exc}")
+        st.stop()
+    render_provenance_banner(active_meta)
 
-# Initialize classifier for interactive testing
-classifier = RelatabilityClassifier(model_path=model_path if model_path.exists() else None)
+# Initialize / reuse cached classifier for interactive testing
+classifier = get_relatability_classifier(model_path=model_path)
 
 # Load metadata if available
-metadata = {}
-if meta_path.exists():
-    with open(meta_path, "r", encoding="utf-8") as f:
-        metadata = json.load(f)
+metadata = load_json_artifact(meta_path)
+real_benchmarks = load_json_artifact(root_dir / "models" / "real_data_benchmarks.json") or {}
 
 # 2. Key Metrics Calculation
 total_comments = len(df_comments)
@@ -220,37 +237,43 @@ with tab1:
 
     # Platform breakdown
     st.markdown("#### 4. Relatability Across Platforms")
-    plat_stats = (
-        df_comments[rel_display_mask]
-        .groupby(["platform", "relatability_label"])
-        .size()
-        .reset_index(name="count")
-    )
-    fig_plat = px.bar(
-        plat_stats,
-        x="platform",
-        y="count",
-        color="relatability_label",
-        barmode="group",
-        color_discrete_map={"Relatable": "#10B981", "Neutral": "#64748B", "Uncertain": "#F59E0B"},
-        title="Comment Relatability by Platform"
-    )
-    fig_plat.update_xaxes(automargin=True, title_standoff=6)
-    fig_plat.update_yaxes(automargin=True)
-    fig_plat.update_layout(
-        height=380,
-        legend=dict(
-            orientation="h",
-            yanchor="top",
-            y=-0.27,
-            xanchor="center",
-            x=0.5,
-            title_text=None,
-            font=dict(size=11),
-        ),
-        margin=dict(l=48, r=28, t=48, b=100),
-    )
-    st.plotly_chart(fig_plat, width="stretch")
+    if "platform" in df_comments.columns:
+        plat_stats = (
+            df_comments[rel_display_mask]
+            .groupby(["platform", "relatability_label"])
+            .size()
+            .reset_index(name="count")
+        )
+    else:
+        plat_stats = pd.DataFrame()
+    if not plat_stats.empty:
+        fig_plat = px.bar(
+            plat_stats,
+            x="platform",
+            y="count",
+            color="relatability_label",
+            barmode="group",
+            color_discrete_map={"Relatable": "#10B981", "Neutral": "#64748B", "Uncertain": "#F59E0B"},
+            title="Comment Relatability by Platform"
+        )
+        fig_plat.update_xaxes(automargin=True, title_standoff=6)
+        fig_plat.update_yaxes(automargin=True)
+        fig_plat.update_layout(
+            height=380,
+            legend=dict(
+                orientation="h",
+                yanchor="top",
+                y=-0.27,
+                xanchor="center",
+                x=0.5,
+                title_text=None,
+                font=dict(size=11),
+            ),
+            margin=dict(l=48, r=28, t=48, b=100),
+        )
+        st.plotly_chart(fig_plat, width="stretch")
+    else:
+        st.info("No English comments cleared language/context safety gates in this dataset to display a platform breakdown.")
 
 
 # --- TAB 2: INTERACTIVE TESTER ---
@@ -377,7 +400,8 @@ with tab3:
 
     f_col1, f_col2, f_col3, f_col4 = st.columns(4)
     with f_col1:
-        plat_filter = st.selectbox("Platform Filter", ["All", "instagram", "youtube"])
+        plat_vals = sorted(df_comments["platform"].dropna().astype(str).unique().tolist()) if "platform" in df_comments.columns else []
+        plat_filter = st.selectbox("Platform Filter", ["All"] + plat_vals)
     with f_col2:
         rel_filter = st.selectbox("Relatability Filter", ["All", "Relatable", "Neutral", "Uncertain"])
     with f_col3:
@@ -415,9 +439,11 @@ with tab3:
     st.write(f"Showing **{len(filtered_df):,}** matching comments:")
 
     display_cols = [
-        "comment_id", "post_id", "platform", "comment_text",
-        "relatability_label", "relatability_confidence",
-        "sentiment_label", "sentiment_score", "classification_status"
+        c for c in [
+            "comment_id", "post_id", "platform", "comment_text",
+            "relatability_label", "relatability_confidence",
+            "sentiment_label", "sentiment_score", "classification_status"
+        ] if c in filtered_df.columns
     ]
     st.dataframe(filtered_df[display_cols].head(50), width="stretch")
 
@@ -485,6 +511,38 @@ with tab4:
             "**Evaluation Split Details:** Comments are partitioned on unique text hashes (75% train / 25% test). "
             "Table A evaluates on rows sampled across multi-post simulations; Table B evaluates strictly on non-redundant distinct comments."
         )
+
+    m3_real = real_benchmarks.get("modules", {}).get("module3", {})
+    if isinstance(m3_real, dict) and m3_real:
+        st.markdown("#### C. External Real-World Benchmark Evaluation (Held-Out & Guardrails)")
+        ig_sent = m3_real.get("instagram_sentiment_heldout", {})
+        lok = m3_real.get("lokananta_indonesian_guardrail", {})
+        instaart = m3_real.get("instaart_comments", {})
+        if ig_sent:
+            tf_full = (ig_sent.get("full_heldout_test") or {}).get("tfidf_logreg", {})
+            tf_uniq = (ig_sent.get("strict_unique_heldout_test") or {}).get("tfidf_logreg", {})
+            st.markdown(
+                f"- **Held-out Instagram Sentiment (`instagram_comments_sentiment_hf`, zero training contamination):** "
+                f"Train N = {ig_sent.get('train_samples')}, Full Test N = {ig_sent.get('test_samples_full')} "
+                f"(Strict-Unique Test N = {ig_sent.get('test_samples_strict_unique')}). "
+                f"TF-IDF + Logistic Regression achieved accuracy = `{tf_full.get('accuracy', 0.0):.3f}` "
+                f"(unique `{tf_uniq.get('accuracy', 0.0):.3f}`), Macro-F1 = `{tf_full.get('macro_f1', 0.0):.3f}` "
+                f"(unique `{tf_uniq.get('macro_f1', 0.0):.3f}`), ECE = `{tf_full.get('ece', 0.0):.3f}`."
+            )
+        if lok:
+            total_lok = max(1, int(lok.get("total_comments", 0) or 0))
+            hinted_rej = int(lok.get("hinted_unsupported_language_count", 0) or 0)
+            st.markdown(
+                f"- **Indonesian Language Guardrail Stress Test (`zenodo_lokananta_comments_ig`, N = {lok.get('total_comments', 0)}):** "
+                f"Hint-free heuristic rejected {lok.get('auto_unsupported_language_pct', 0.0):.2f}% as `unsupported_language`; "
+                f"metadata `language_hint='id'` routed {hinted_rej:,}/{total_lok:,} ({100.0 * hinted_rej / total_lok:.1f}%) "
+                f"to `unsupported_language` without English model hallucination."
+            )
+        if instaart:
+            st.markdown(
+                f"- **Instagram Art Comments (`instaart_human_ai`, N = {instaart.get('total_comments', 0):,}):** "
+                f"Segmented into human vs. AI creator cohorts while preserving `insufficient_context` and non-English abstentions."
+            )
 
     st.markdown(
         """
