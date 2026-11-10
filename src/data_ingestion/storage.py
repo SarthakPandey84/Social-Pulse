@@ -3,6 +3,7 @@
 Supports historical snapshot retention, idempotent ingestion, and latest-state SQL views.
 """
 
+from contextlib import closing
 from datetime import datetime, timezone
 from pathlib import Path
 import sqlite3
@@ -47,14 +48,14 @@ class DataStorageManager:
 
     def persist_to_sqlite(self, df: pd.DataFrame, table_name: str = "posts", if_exists: str = "replace") -> int:
         """Persist DataFrame into SQLite database, indexing snapshot tuples and creating a latest-record view."""
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn, conn:
             # Cast timestamp columns to string for SQLite compatibility
             df_sql = df.copy()
             for col in df_sql.select_dtypes(include=["datetime64[ns, UTC]", "datetime64[ns]"]).columns:
                 df_sql[col] = df_sql[col].astype(str)
 
             df_sql.to_sql(table_name, conn, if_exists=if_exists, index=False)
-            
+
             cursor = conn.cursor()
             # Index on full snapshot identity
             cursor.execute(
@@ -76,25 +77,24 @@ class DataStorageManager:
             AND p.collection_timestamp = latest.max_cts;
             """
             cursor.execute(view_sql)
-            conn.commit()
 
         return len(df)
 
     def load_from_sqlite(self, table_name: str = "posts") -> pd.DataFrame:
         """Read all historical records from SQLite database."""
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn:
             df = pd.read_sql_query(f"SELECT * FROM {table_name}", conn)
         return df
 
     def load_latest_from_sqlite(self, table_name: str = "posts") -> pd.DataFrame:
         """Read only the latest observation per post using the latest-record SQL view."""
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn:
             df = pd.read_sql_query(f"SELECT * FROM latest_{table_name}", conn)
         return df
 
     def load_history_for_post(self, platform: str, post_id: str, table_name: str = "posts") -> pd.DataFrame:
         """Query longitudinal history of metric progression for an individual post."""
-        with sqlite3.connect(self.db_path) as conn:
+        with closing(sqlite3.connect(self.db_path)) as conn:
             query = f"""
             SELECT * FROM {table_name}
             WHERE platform = ? AND post_id = ?

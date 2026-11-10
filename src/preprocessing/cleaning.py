@@ -8,9 +8,7 @@ Preserves missing-value semantics using pandas nullable types (Int64, Float64).
 
 from datetime import datetime, timezone
 import re
-from typing import Optional
 import pandas as pd
-from src.data_ingestion.schemas import UNIFIED_PANDAS_DTYPES
 
 
 def clean_text(text: str) -> str:

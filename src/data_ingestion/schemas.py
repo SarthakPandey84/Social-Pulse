@@ -7,7 +7,7 @@ metric availability classifications, and provenance metadata across Instagram, Y
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, Optional, Set
 import pandas as pd
 
 
@@ -77,6 +77,33 @@ class MetricAvailabilityStatus(str, Enum):
     NOT_APPLICABLE = "not_applicable"  # Structurally inapplicable (e.g. saves on YouTube, retention on static image)
 
 
+class SourceProvenance(str, Enum):
+    """Strict provenance taxonomy distinguishing real, synthetic, owner-authorized, and unverified sources."""
+    REAL_PUBLIC_DATA = "real_public_data"
+    OWNER_AUTHORIZED_DATA = "owner_authorized_data"
+    SYNTHETIC_DATA = "synthetic_data"
+    SIMULATED_DATA = "simulated_data"
+    EXTERNAL_BENCHMARK_UNVERIFIED = "external_benchmark_unverified"
+    WEAKLY_LABELLED_DATA = "weakly_labelled_data"
+
+
+SUPPORTED_PLATFORMS = ("instagram", "youtube", "tiktok")
+
+PROXY_METRIC_DEFINITIONS: Dict[str, str] = {
+    "tiktok_collect_count": (
+        "TikTok video favorite/collect counter (`collect_count`). Distinct from Instagram Insights "
+        "`saves`; retained as an explicit proxy metric and never silently pooled with Instagram saves."
+    ),
+    "tiktok_whatsapp_share_count": (
+        "TikTok outbound WhatsApp share counter (`whatsapp_share_count`), subset/companion to total `shares`."
+    ),
+    "youtube_trending_snapshot": (
+        "Point-in-time YouTube Trending tab snapshot indexed by `(video_id, region, trending_date)`. "
+        "Subject to platform curation/selection bias and not representative of channel-wide averages."
+    ),
+}
+
+
 def get_applicable_metrics(platform: str, content_type: str, access_tier: str = "owner_oauth") -> Set[str]:
     """Return the exact set of canonical metrics that are applicable and collectible.
 
@@ -94,7 +121,7 @@ def get_applicable_metrics(platform: str, content_type: str, access_tier: str = 
     applicable = {"likes", "comments_count", "follower_count"}
 
     # Views vs Impressions by content type
-    is_video = content_norm in {"reel", "short", "video", "short video"}
+    is_video = content_norm in {"reel", "short", "video", "short video", "short_video"}
     if is_video:
         applicable.add("views")
         if tier_norm == "owner_oauth":
@@ -115,6 +142,11 @@ def get_applicable_metrics(platform: str, content_type: str, access_tier: str = 
 
     if platform_norm == "youtube" and tier_norm == "owner_oauth":
         applicable.add("shares")
+
+    if platform_norm == "tiktok":
+        applicable = {"views", "likes", "comments_count", "shares", "follower_count"}
+        if is_video or content_norm in {"short_video", "video", "unknown"}:
+            applicable.add("views")
 
     # Public API limitations
     if tier_norm == "public_api":
