@@ -1,20 +1,18 @@
 # Core Application Dependencies (Runtime, Analytics & Streamlit Dashboard)
-# Verified baseline environment: Python 3.11.9 (recommended Python >=3.11 for prebuilt pandas 3.x / sklearn 1.9 wheels;
-# if using Python 3.10 or another scikit-learn version, regenerate local models with: python scripts/build_all_artifacts.py)
+# Verified baseline & recommended Streamlit Community Cloud runtime: Python 3.11
+# (select Python 3.11 in Cloud Advanced settings; Python 3.10 is EOL and unsupported).
+# All direct pins below also provide prebuilt Linux wheels for Python 3.12+.
 
 # Data Processing, Numerical Computing & Parquet Engine
-pandas>=2.2.0,<4.0.0
-numpy>=1.24.0,<3.0.0
-scipy>=1.10.0,<2.0.0
-pyarrow>=12.0.0,<25.0.0
+pandas==3.0.3
+numpy==2.4.4
+scipy==1.17.1
+pyarrow==24.0.0
 
 # Machine Learning & Serialization
-scikit-learn>=1.3.0,<2.0.0
-joblib>=1.3.0,<2.0.0
+scikit-learn==1.9.0
+joblib==1.5.3
 
 # Visualization & Interactive Application
-plotly>=5.16.0,<8.0.0
-streamlit>=1.51.0,<2.0.0
-
-# Runtime Helper Configuration Loader (imported by utils.helpers)
-pyyaml>=6.0.1,<7.0.0
+plotly==7.1.0
+streamlit==1.58.0

@@ -58,15 +58,27 @@ env/
 *.swp
 *.swo
 
-# Environment variables
+# Environment variables & local credentials
 .env
+.env.*
+!.env.example
 .env.local
+kaggle.json
+.kaggle/
 
-# Data files (keep sample, ignore large raw/processed extracts)
+# Archives
+*.zip
+*.tar.gz
+
+# Data files (keep sample, ignore raw/processed/external downloads and reports)
 data/raw/*
 !data/raw/.gitkeep
 data/processed/*
 !data/processed/.gitkeep
+data/processed/external/
+data/external/*
+!data/external/.gitkeep
+data/external/reports/
 
 # Trained models and large artifacts
 models/*.pkl
@@ -84,4 +96,3 @@ database/*.sqlite3
 # OS generated files
 .DS_Store
 Thumbs.db
-

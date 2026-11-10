@@ -4,8 +4,8 @@
 #   pip install -r requirements.txt -c constraints.txt
 #   pip install -r requirements-dev.txt -c constraints.txt
 #
-# Preserves tested versions across runtime, analytics, ML/NLP, Streamlit UI,
-# and test tooling without modifying bounded ranges in requirements*.txt.
+# Preserves tested versions across transitive runtime, analytics, ML/NLP, Streamlit UI,
+# and test/dev tooling alongside pinned direct runtime versions in requirements.txt.
 altair==6.2.1
 anyio==4.12.1
 argon2-cffi==25.1.0

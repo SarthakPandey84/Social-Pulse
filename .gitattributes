@@ -1,0 +1,32 @@
+# Normalize text files consistently across Windows & Linux CI/Cloud
+* text=auto
+
+*.py text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.toml text eol=lf
+*.txt text eol=lf
+*.svg text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf
+.gitkeep text eol=lf
+.env.example text eol=lf
+*.csv text
+
+# Explicit binary formats
+*.parquet binary
+*.joblib binary
+*.pkl binary
+*.db binary
+*.sqlite binary
+*.sqlite3 binary
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.xlsx binary
+*.zip binary
+*.tar.gz binary

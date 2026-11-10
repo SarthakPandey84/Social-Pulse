@@ -1,6 +1,6 @@
-"""Utility helpers and configuration management for SocialPulse."""
+"""Utility helpers for SocialPulse."""
 
-from .helpers import load_config, get_project_root
+from .helpers import get_project_root
 
-__all__ = ["load_config", "get_project_root"]
+__all__ = ["get_project_root"]
 
