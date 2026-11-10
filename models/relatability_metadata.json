@@ -1,0 +1,148 @@
+{
+  "model_version": "nlp-relatability-v1.0.0",
+  "trained_at": "2026-11-10T02:38:41.750109+00:00",
+  "dataset_provenance": "synthetic_illustrative_benchmark",
+  "provenance_statement": "Synthetic benchmark comments dataset created for architectural and NLP pipeline demonstration. Evaluation metrics demonstrate statistical separation and baseline comparison, not real-world audience validation.",
+  "label_provenance": {
+    "source_type": "manually_authored_synthetic_benchmark_with_predefined_labels",
+    "independent_human_annotated": false,
+    "circularity_risk_identified": "Rule guardrails in RelatabilityClassifier were designed with domain knowledge of synthetic benchmark phrases. Therefore, rule-based precision is circular and artificially elevated. No external human annotators were used."
+  },
+  "confidence_semantics": {
+    "rule_confidence": "Uncalibrated heuristic weights (0.92 for technical queries, 0.95 for experiential anchors)",
+    "model_confidence": "Uncalibrated Logistic Regression model probabilities (predict_proba)",
+    "calibrated_posterior_probabilities": false
+  },
+  "train_test_split_audit": {
+    "total_benchmark_records": 500,
+    "total_unique_evaluatable_texts": 112,
+    "repeated_split_counts": {
+      "train_rows": 327,
+      "test_rows": 114
+    },
+    "unique_text_split_counts": {
+      "train_unique": 84,
+      "test_unique": 28
+    },
+    "template_leakage_note": "Partitioning on unique texts prevents verbatim string leakage. However, near-duplicate template families (e.g., 'What [gear] did you use?', 'Literally me every [morning/exam]') naturally exist across splits."
+  },
+  "models_benchmarked": {
+    "first_person_pronoun_heuristic": {
+      "accuracy": 0.8509,
+      "precision_relatable": 0.8033,
+      "recall_relatable": 0.9074,
+      "f1_relatable": 0.8522,
+      "f1_macro": 0.8509,
+      "uncertain_count": 0,
+      "confusion_matrix": [
+        [
+          49,
+          5
+        ],
+        [
+          12,
+          48
+        ]
+      ]
+    },
+    "rule_based_keyword_baseline": {
+      "accuracy": 0.8158,
+      "precision_relatable": 1.0,
+      "recall_relatable": 0.6111,
+      "f1_relatable": 0.7586,
+      "f1_macro": 0.8048,
+      "uncertain_count": 0,
+      "confusion_matrix": [
+        [
+          33,
+          21
+        ],
+        [
+          0,
+          60
+        ]
+      ]
+    },
+    "hybrid_tfidf_logistic_pipeline": {
+      "accuracy": 0.9035,
+      "precision_relatable": 0.9388,
+      "recall_relatable": 0.8519,
+      "f1_relatable": 0.8932,
+      "f1_macro": 0.9026,
+      "uncertain_count": 6,
+      "confusion_matrix": [
+        [
+          46,
+          8
+        ],
+        [
+          3,
+          57
+        ]
+      ]
+    }
+  },
+  "strictly_unique_text_benchmark": {
+    "first_person_pronoun_heuristic": {
+      "accuracy": 0.8571,
+      "precision_relatable": 0.8125,
+      "recall_relatable": 0.9286,
+      "f1_relatable": 0.8667,
+      "f1_macro": 0.8564,
+      "uncertain_count": 0,
+      "confusion_matrix": [
+        [
+          13,
+          1
+        ],
+        [
+          3,
+          11
+        ]
+      ]
+    },
+    "rule_based_keyword_baseline": {
+      "accuracy": 0.7857,
+      "precision_relatable": 1.0,
+      "recall_relatable": 0.5714,
+      "f1_relatable": 0.7273,
+      "f1_macro": 0.7754,
+      "uncertain_count": 0,
+      "confusion_matrix": [
+        [
+          8,
+          6
+        ],
+        [
+          0,
+          14
+        ]
+      ]
+    },
+    "hybrid_tfidf_logistic_pipeline": {
+      "accuracy": 0.8929,
+      "precision_relatable": 0.9231,
+      "recall_relatable": 0.8571,
+      "f1_relatable": 0.8889,
+      "f1_macro": 0.8927,
+      "uncertain_count": 2,
+      "confusion_matrix": [
+        [
+          12,
+          2
+        ],
+        [
+          1,
+          13
+        ]
+      ]
+    }
+  },
+  "selected_architecture": "Hybrid Multi-Tier Pipeline (Rule Guardrails + TF-IDF Logistic Regression + Uncertainty Window)",
+  "language_coverage": "English (non-English explicitly marked unsupported via script & stopword checks)",
+  "unsupported_status_count": 24,
+  "insufficient_context_count": 27,
+  "relatable_count": 203,
+  "neutral_count": 239,
+  "uncertain_count": 7
+}

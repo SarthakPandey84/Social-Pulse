@@ -1,0 +1,86 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Test & static-analysis caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Temporary debugging, browser profiles & release archives
+*.log
+scratch/
+reports/*.zip
+reports/figures/**/chrome_*/
+**/chrome_*profile*/
+chrome_user*/
+reports/figures/**/screenshot_test*.png
+reports/figures/**/rendered_dom_text.txt
+.streamlit/secrets.toml
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+ENV/
+env/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment variables
+.env
+.env.local
+
+# Data files (keep sample, ignore large raw/processed extracts)
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# Trained models and large artifacts
+models/*.pkl
+models/*.joblib
+models/*.onnx
+!models/.gitkeep
+
+# Database files
+database/*.db
+database/*.sqlite
+database/*.sqlite3
+!database/.gitkeep
+
+# OS generated files
+.DS_Store
+Thumbs.db
+

@@ -1,0 +1,78 @@
+# NOTE: Static Reference Configuration Snapshot for SocialPulse.
+# Runtime modules currently operate from explicit code-level constants, schemas, and enums
+# unless loaded explicitly via `utils.helpers.load_config()`.
+
+project:
+  name: "SocialPulse — Intelligent Social Media Analytics & Engagement Optimization Platform"
+  academic_origin: "Unlox Data-Driven Social Engagement Initiative (December Major Project)"
+  version: "1.0.0"
+  description: "Multi-module statistical modeling, orthogonal NLP, experimentation, and forecasting platform"
+
+paths:
+  raw_data: "data/raw"
+  processed_data: "data/processed"
+  sample_data: "data/sample"
+  models_dir: "models"
+  reports_dir: "reports"
+  database_dir: "database"
+
+virality_engine:
+  metric_name: "engagement_virality_index"
+  # Availability-aware normalized high-intent action weights matching ViralityPredictor.DEFAULT_WEIGHTS
+  weights:
+    shares: 0.40
+    saves: 0.35
+    comments_count: 0.15
+    likes: 0.10
+  retention_factor_formula: "0.5 + retention_rate (video only when in [0, 1]; 1.0 otherwise)"
+  smoothing_constant_epsilon: 100.0
+  normalization_base: 1000
+  min_maturity_days: 7
+  min_training_samples: 50
+
+nlp_sentiment:
+  relatability_classes:
+    - "Relatable"
+    - "Neutral"
+    - "Uncertain"
+  sentiment_classes:
+    - "Positive"
+    - "Negative"
+    - "Neutral"
+    - "Mixed"
+  uncertainty_window:
+    - 0.42
+    - 0.58
+  language_support: "en"
+  engine_architecture: "Hybrid rule guardrails + TF-IDF Logistic Regression + domain lexicon sentiment polarity"
+
+ab_testing:
+  significance_level_alpha: 0.05
+  statistical_power_beta: 0.80
+  min_sample_size_per_variant: 50
+  multiple_testing_default: "holm"
+  metrics:
+    - "share_rate"
+    - "save_rate"
+    - "retention_rate"
+    - "views"
+    - "relatability_pct"
+
+recommender:
+  min_high_confidence_samples: 60
+  conflict_penalty_multiplier: 0.85
+  priority_weights:
+    evidence: 0.30
+    impact: 0.20
+    sample: 0.15
+    relevance: 0.15
+    recency: 0.10
+    quality: 0.10
+
+dashboard:
+  title: "SocialPulse — Social Engagement & Growth Intelligence"
+  theme: "light"
+  sidebar_theme: "dark-slate"
+  entrypoint: "streamlit_app.py"
+  port: 8501
+

@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 212 40" width="212" height="40" role="img" aria-label="SocialPulse Logo">
+  <defs>
+    <linearGradient id="spGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284C7"/>
+      <stop offset="100%" stop-color="#0D9488"/>
+    </linearGradient>
+  </defs>
+  <rect x="0.5" y="0.5" width="211" height="39" rx="10" fill="#0F172A" stroke="#334155" stroke-width="1"/>
+  <rect x="6" y="6" width="28" height="28" rx="7" fill="url(#spGrad)"/>
+  <path d="M10.5 21.5H14.5L17.2 14.5L21 25.5L23.8 18.5H29.5" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="29.5" cy="18.5" r="1.8" fill="#FFFFFF"/>
+  <text x="43" y="24.5" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="16" font-weight="700" letter-spacing="-0.3" fill="#FFFFFF">Social<tspan fill="#38BDF8">Pulse</tspan></text>
+  <rect x="147" y="12" width="56" height="16" rx="8" fill="#1E293B" stroke="#334155" stroke-width="0.8"/>
+  <text x="175" y="23" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="8.5" font-weight="600" letter-spacing="0.4" fill="#94A3B8">ANALYTICS</text>
+</svg>
+

@@ -1,0 +1,501 @@
+comment_id,post_id,platform,comment_text,ground_truth_relatability,ground_truth_sentiment,classification_status,language,likes,comment_timestamp
+CMT_00001,POST_0004,instagram,I hate how accurately this captures my imposter syndrome.,Relatable,Negative,success,en,3,2026-10-18T06:00:00Z
+CMT_00002,POST_0032,instagram,"Great video, keep up the awesome content!",Neutral,Positive,success,en,24,2026-09-15T06:00:00Z
+CMT_00003,POST_0095,youtube,Going through this exact dilemma right now.,Relatable,Neutral,success,en,10,2026-09-07T12:00:00Z
+CMT_00004,POST_0076,instagram,Felt that deep in my chest. Career burnout is real.,Relatable,Negative,success,en,7,2026-09-28T00:00:00Z
+CMT_00005,POST_0004,instagram,Literally me every single morning when the alarm rings.,Relatable,Negative,success,en,1,2026-09-06T18:00:00Z
+CMT_00006,POST_0030,instagram,I am suffering from this exact issue at my startup.,Relatable,Negative,success,en,1,2026-10-03T06:00:00Z
+CMT_00007,POST_0072,instagram,"I needed to hear this today, thank you so much.",Relatable,Positive,success,en,0,2026-09-13T12:00:00Z
+CMT_00008,POST_0029,instagram,I am a software engineer and I don't use this stack.,Neutral,Neutral,success,en,16,2026-09-29T12:00:00Z
+CMT_00009,POST_0104,youtube,"Checked your page, looks super cool and clean.",Neutral,Positive,success,en,7,2026-10-26T12:00:00Z
+CMT_00010,POST_0098,youtube,I thought I was the only one going through this.,Relatable,Neutral,success,en,9,2026-10-22T12:00:00Z
+CMT_00011,POST_0090,youtube,I have 50 tabs open right now and can't complete one sentence.,Relatable,Negative,success,en,0,2026-09-28T00:00:00Z
+CMT_00012,POST_0036,instagram,I disagree with the conclusion presented at 02:15.,Neutral,Negative,success,en,28,2026-09-10T18:00:00Z
+CMT_00013,POST_0098,youtube,I am suffering from this exact issue at my startup.,Relatable,Negative,success,en,14,2026-09-22T12:00:00Z
+CMT_00014,POST_0012,instagram,This hits home so hard. Grad school is breaking me.,Relatable,Negative,success,en,1,2026-09-25T06:00:00Z
+CMT_00015,POST_0046,instagram,Realest video on the internet today.,Relatable,Positive,success,en,1,2026-10-25T00:00:00Z
+CMT_00016,POST_0078,instagram,This was very informative and clearly articulated.,Neutral,Positive,success,en,1,2026-09-17T18:00:00Z
+CMT_00017,POST_0094,youtube,My anxiety has been telling me this all week.,Relatable,Negative,success,en,2,2026-09-30T06:00:00Z
+CMT_00018,POST_0119,youtube,"I feel so seen right now, definitely sharing with my partner.",Relatable,Positive,success,en,5,2026-09-25T00:00:00Z
+CMT_00019,POST_0071,instagram,Stop describing my daily routine please lol.,Relatable,Positive,success,en,4,2026-09-19T18:00:00Z
+CMT_00020,POST_0074,instagram,Good overview of the topic for beginners.,Neutral,Positive,success,en,2,2026-09-13T06:00:00Z
+CMT_00021,POST_0006,instagram,My exact thoughts when I opened LinkedIn today.,Relatable,Neutral,success,en,7,2026-10-13T06:00:00Z
+CMT_00022,POST_0099,youtube,Which microphone is that on your desk?,Neutral,Neutral,success,en,1,2026-09-19T12:00:00Z
+CMT_00023,POST_0110,youtube,Stop describing my daily routine please lol.,Relatable,Positive,success,en,2,2026-09-15T18:00:00Z
+CMT_00024,POST_0049,instagram,I am in this video and I don't like it haha.,Relatable,Neutral,success,en,3,2026-09-18T18:00:00Z
+CMT_00025,POST_0082,instagram,ok,Insufficient_Context,Neutral,insufficient_context,en,4,2026-10-24T06:00:00Z
+CMT_00026,POST_0021,instagram,I think you should cover time management tools in part 2.,Neutral,Neutral,success,en,12,2026-09-24T12:00:00Z
+CMT_00027,POST_0027,instagram,The audio was slightly quiet in the opening chapter.,Neutral,Negative,success,en,1,2026-10-13T18:00:00Z
+CMT_00028,POST_0090,youtube,Are you using Premiere Pro or DaVinci Resolve?,Neutral,Neutral,success,en,5,2026-10-30T18:00:00Z
+CMT_00029,POST_0078,instagram,I had this exact breakdown yesterday at my desk.,Relatable,Negative,success,en,7,2026-10-11T12:00:00Z
+CMT_00030,POST_0069,instagram,I spent 4 hours rewriting one paragraph because of perfectionism.,Relatable,Negative,success,en,0,2026-10-17T12:00:00Z
+CMT_00031,POST_0021,instagram,Where did you buy that desk lamp?,Neutral,Neutral,success,en,7,2026-09-30T12:00:00Z
+CMT_00032,POST_0035,instagram,Shared this with my university research group.,Neutral,Positive,success,en,1,2026-10-30T00:00:00Z
+CMT_00033,POST_0088,youtube,What camera did you use to film this video?,Neutral,Neutral,success,en,0,2026-09-21T18:00:00Z
+CMT_00034,POST_0030,instagram,Hits way too close to home.,Relatable,Neutral,success,en,23,2026-10-23T12:00:00Z
+CMT_00035,POST_0104,youtube,Literally me every single morning when the alarm rings.,Relatable,Negative,success,en,26,2026-09-21T00:00:00Z
+CMT_00036,POST_0035,instagram,I bought that camera last year and returned it.,Neutral,Negative,success,en,13,2026-09-05T00:00:00Z
+CMT_00037,POST_0117,youtube,The procrastination loop you described is my entire semester.,Relatable,Negative,success,en,2,2026-10-31T06:00:00Z
+CMT_00038,POST_0028,instagram,"Brilliant video presentation, very engaging to watch.",Neutral,Positive,success,en,0,2026-10-12T18:00:00Z
+CMT_00039,POST_0051,instagram,que buena camara usas para grabar esto,Neutral,Positive,unsupported_language,non-en,9,2026-10-27T12:00:00Z
+CMT_00040,POST_0019,instagram,cool,Insufficient_Context,Positive,insufficient_context,en,4,2026-09-17T18:00:00Z
+CMT_00041,POST_0032,instagram,Going through this exact dilemma right now.,Relatable,Neutral,success,en,1,2026-10-18T12:00:00Z
+CMT_00042,POST_0096,youtube,What audio interface are you running?,Neutral,Neutral,success,en,5,2026-10-08T06:00:00Z
+CMT_00043,POST_0115,youtube,I think you should invest in a better pop filter.,Neutral,Negative,success,en,0,2026-10-08T06:00:00Z
+CMT_00044,POST_0047,instagram,I bought that camera last year and returned it.,Neutral,Negative,success,en,19,2026-09-15T00:00:00Z
+CMT_00045,POST_0066,instagram,Going through this exact dilemma right now.,Relatable,Neutral,success,en,2,2026-10-02T12:00:00Z
+CMT_00046,POST_0097,youtube,The way my heart dropped because of how accurate this is.,Relatable,Negative,success,en,8,2026-09-04T00:00:00Z
+CMT_00047,POST_0020,instagram,I hate how accurately this captures my imposter syndrome.,Relatable,Negative,success,en,2,2026-10-11T00:00:00Z
+CMT_00048,POST_0102,youtube,I have 50 tabs open right now and can't complete one sentence.,Relatable,Negative,success,en,5,2026-10-14T12:00:00Z
+CMT_00049,POST_0077,instagram,I disagree with your methodology in this experiment.,Neutral,Negative,success,en,6,2026-09-05T00:00:00Z
+CMT_00050,POST_0049,instagram,The pacing was a bit rushed towards the end.,Neutral,Negative,success,en,1,2026-10-09T00:00:00Z
+CMT_00051,POST_0068,instagram,???,Insufficient_Context,Neutral,insufficient_context,en,27,2026-09-17T00:00:00Z
+CMT_00052,POST_0088,youtube,Exactly what I am experiencing right now with my job.,Relatable,Negative,success,en,11,2026-10-17T00:00:00Z
+CMT_00053,POST_0088,youtube,Bro is narrating my 20s better than my therapist.,Relatable,Positive,success,en,22,2026-10-27T12:00:00Z
+CMT_00054,POST_0099,youtube,Are you using Premiere Pro or DaVinci Resolve?,Neutral,Neutral,success,en,18,2026-10-12T00:00:00Z
+CMT_00055,POST_0015,instagram,I disagree with the conclusion presented at 02:15.,Neutral,Negative,success,en,7,2026-09-19T18:00:00Z
+CMT_00056,POST_0021,instagram,"Groundbreaking advice, just stop procrastinating guys.",Neutral,Negative,success,en,20,2026-09-30T00:00:00Z
+CMT_00057,POST_0093,youtube,This happens to me every single morning.,Relatable,Negative,success,en,0,2026-10-27T00:00:00Z
+CMT_00058,POST_0065,instagram,What audio interface are you running?,Neutral,Neutral,success,en,1,2026-10-19T18:00:00Z
+CMT_00059,POST_0065,instagram,I feel attacked by the accuracy of this reel.,Relatable,Neutral,success,en,0,2026-10-29T06:00:00Z
+CMT_00060,POST_0112,youtube,Every word here describes what I've been silently enduring.,Relatable,Negative,success,en,3,2026-10-11T00:00:00Z
+CMT_00061,POST_0108,youtube,Good job on the animation breakdown.,Neutral,Positive,success,en,3,2026-10-11T18:00:00Z
+CMT_00062,POST_0020,instagram,This is the most relatable thing I have seen all month.,Relatable,Positive,success,en,2,2026-09-24T18:00:00Z
+CMT_00063,POST_0070,instagram,I freeze whenever my boss asks for a quick sync.,Relatable,Negative,success,en,14,2026-11-01T00:00:00Z
+CMT_00064,POST_0077,instagram,This happens to me every single morning.,Relatable,Negative,success,en,3,2026-09-21T12:00:00Z
+CMT_00065,POST_0003,instagram,este video me describe perfectamente amigo mio,Relatable,Positive,unsupported_language,non-en,2,2026-09-08T00:00:00Z
+CMT_00066,POST_0113,youtube,Good overview of the topic for beginners.,Neutral,Positive,success,en,6,2026-11-03T00:00:00Z
+CMT_00067,POST_0031,instagram,Super clean aesthetics and color palette.,Neutral,Positive,success,en,1,2026-09-04T12:00:00Z
+CMT_00068,POST_0113,youtube,What font did you use for the animated title text?,Neutral,Neutral,success,en,12,2026-10-07T06:00:00Z
+CMT_00069,POST_0011,instagram,Stop describing my daily routine please lol.,Relatable,Positive,success,en,0,2026-10-17T18:00:00Z
+CMT_00070,POST_0105,youtube,bhai ye toh meri hi kahani hai bilkul sach bola aapne,Relatable,Positive,unsupported_language,non-en,34,2026-09-05T06:00:00Z
+CMT_00071,POST_0017,instagram,I literally cried watching this because I felt so isolated until now.,Relatable,Negative,success,en,11,2026-10-13T00:00:00Z
+CMT_00072,POST_0071,instagram,👀,Insufficient_Context,Neutral,insufficient_context,en,1,2026-09-11T12:00:00Z
+CMT_00073,POST_0068,instagram,What audio interface are you running?,Neutral,Neutral,success,en,0,2026-10-26T18:00:00Z
+CMT_00074,POST_0028,instagram,I disagree with your methodology in this experiment.,Neutral,Negative,success,en,13,2026-10-30T06:00:00Z
+CMT_00075,POST_0092,youtube,"I literally did this 10 minutes ago, get out of my head!",Relatable,Positive,success,en,9,2026-09-20T18:00:00Z
+CMT_00076,POST_0086,youtube,I bought that camera last year and returned it.,Neutral,Negative,success,en,10,2026-10-12T12:00:00Z
+CMT_00077,POST_0057,instagram,This explains the concept much better than my textbook.,Neutral,Positive,success,en,11,2026-10-28T12:00:00Z
+CMT_00078,POST_0016,instagram,idk,Insufficient_Context,Neutral,insufficient_context,en,0,2026-09-16T18:00:00Z
+CMT_00079,POST_0009,instagram,What editing software was used for this transition?,Neutral,Neutral,success,en,3,2026-09-22T12:00:00Z
+CMT_00080,POST_0076,instagram,Never felt so understood by an Instagram post.,Relatable,Positive,success,en,0,2026-10-06T06:00:00Z
+CMT_00081,POST_0076,instagram,Which microphone is that on your desk?,Neutral,Neutral,success,en,15,2026-09-15T00:00:00Z
+CMT_00082,POST_0010,instagram,I thought I was the only one going through this.,Relatable,Neutral,success,en,7,2026-10-16T06:00:00Z
+CMT_00083,POST_0030,instagram,Are you living inside my brain? This was literally my morning.,Relatable,Neutral,success,en,3,2026-09-05T06:00:00Z
+CMT_00084,POST_0111,youtube,Literally me every single morning when the alarm rings.,Relatable,Negative,success,en,0,2026-09-22T00:00:00Z
+CMT_00085,POST_0066,instagram,I had this exact breakdown yesterday at my desk.,Relatable,Negative,success,en,2,2026-09-16T00:00:00Z
+CMT_00086,POST_0086,youtube,"Checked your page, looks super cool and clean.",Neutral,Positive,success,en,3,2026-10-02T00:00:00Z
+CMT_00087,POST_0070,instagram,The procrastination loop you described is my entire semester.,Relatable,Negative,success,en,10,2026-09-09T06:00:00Z
+CMT_00088,POST_0032,instagram,👀,Insufficient_Context,Neutral,insufficient_context,en,8,2026-10-21T00:00:00Z
+CMT_00089,POST_0104,youtube,👀,Insufficient_Context,Neutral,insufficient_context,en,17,2026-09-27T00:00:00Z
+CMT_00090,POST_0013,instagram,My bank account and I felt this deeply.,Relatable,Negative,success,en,5,2026-09-07T00:00:00Z
+CMT_00091,POST_0046,instagram,"Oh sure, waking up early magically solves rent lol.",Neutral,Negative,success,en,1,2026-09-28T00:00:00Z
+CMT_00092,POST_0060,instagram,I found this video while browsing the explore tab.,Neutral,Neutral,success,en,9,2026-10-26T06:00:00Z
+CMT_00093,POST_0087,youtube,"I struggle with this daily, feels like everyone else has it figured out.",Relatable,Negative,success,en,11,2026-10-12T18:00:00Z
+CMT_00094,POST_0008,instagram,I am in this video and I don't like it haha.,Relatable,Neutral,success,en,6,2026-09-26T18:00:00Z
+CMT_00095,POST_0103,youtube,Not sure I agree with your second argument.,Neutral,Negative,success,en,11,2026-10-26T00:00:00Z
+CMT_00096,POST_0032,instagram,Every word here describes what I've been silently enduring.,Relatable,Negative,success,en,5,2026-09-13T06:00:00Z
+CMT_00097,POST_0069,instagram,My bank account and I felt this deeply.,Relatable,Negative,success,en,5,2026-09-29T12:00:00Z
+CMT_00098,POST_0055,instagram,Going through this exact dilemma right now.,Relatable,Neutral,success,en,4,2026-09-12T12:00:00Z
+CMT_00099,POST_0060,instagram,"Checked your page, looks super cool and clean.",Neutral,Positive,success,en,0,2026-09-16T18:00:00Z
+CMT_00100,POST_0057,instagram,This called me out so hard I almost closed the app.,Relatable,Neutral,success,en,0,2026-10-22T12:00:00Z
+CMT_00101,POST_0007,instagram,I am in this video and I don't like it haha.,Relatable,Neutral,success,en,0,2026-10-12T12:00:00Z
+CMT_00102,POST_0012,instagram,Why did you have to call me out like this?!,Relatable,Neutral,success,en,8,2026-10-30T06:00:00Z
+CMT_00103,POST_0022,instagram,Could you share the color grading LUT for this?,Neutral,Neutral,success,en,3,2026-09-27T00:00:00Z
+CMT_00104,POST_0062,instagram,bhai ye toh meri hi kahani hai bilkul sach bola aapne,Relatable,Positive,unsupported_language,non-en,5,2026-09-14T12:00:00Z
+CMT_00105,POST_0116,youtube,I bought that camera last year and returned it.,Neutral,Negative,success,en,19,2026-09-04T18:00:00Z
+CMT_00106,POST_0049,instagram,I literally paced around my room for an hour avoiding one phone call.,Relatable,Negative,success,en,2,2026-09-01T00:00:00Z
+CMT_00107,POST_0034,instagram,Please add chapters or timestamps in the description.,Neutral,Neutral,success,en,4,2026-10-30T06:00:00Z
+CMT_00108,POST_0037,instagram,ok,Insufficient_Context,Neutral,insufficient_context,en,11,2026-09-28T00:00:00Z
+CMT_00109,POST_0020,instagram,bhai ye toh meri hi kahani hai bilkul sach bola aapne,Relatable,Positive,unsupported_language,non-en,2,2026-09-13T00:00:00Z
+CMT_00110,POST_0028,instagram,"Really well-crafted video, good pacing throughout.",Neutral,Positive,success,en,0,2026-11-01T18:00:00Z
+CMT_00111,POST_0075,instagram,Hits way too close to home.,Relatable,Neutral,success,en,2,2026-10-18T00:00:00Z
+CMT_00112,POST_0096,youtube,Are you living inside my brain? This was literally my morning.,Relatable,Neutral,success,en,1,2026-09-21T00:00:00Z
+CMT_00113,POST_0007,instagram,Hits way too close to home.,Relatable,Neutral,success,en,21,2026-10-08T06:00:00Z
+CMT_00114,POST_0065,instagram,C'est tellement vrai pour moi aussi dans ma vie.,Relatable,Positive,unsupported_language,non-en,13,2026-10-29T18:00:00Z
+CMT_00115,POST_0008,instagram,I have 50 tabs open right now and can't complete one sentence.,Relatable,Negative,success,en,8,2026-11-01T06:00:00Z
+CMT_00116,POST_0109,youtube,Stop describing my daily routine please lol.,Relatable,Positive,success,en,16,2026-09-12T18:00:00Z
+CMT_00117,POST_0077,instagram,My exact thoughts when I opened LinkedIn today.,Relatable,Neutral,success,en,13,2026-09-05T06:00:00Z
+CMT_00118,POST_0052,instagram,Could you share the color grading LUT for this?,Neutral,Neutral,success,en,1,2026-09-08T12:00:00Z
+CMT_00119,POST_0075,instagram,Is this filmed in 24fps or 60fps?,Neutral,Neutral,success,en,17,2026-10-09T00:00:00Z
+CMT_00120,POST_0080,instagram,Living this exact nightmare at my workplace right now.,Relatable,Negative,success,en,6,2026-09-06T00:00:00Z
+CMT_00121,POST_0085,instagram,I am a software engineer and I don't use this stack.,Neutral,Neutral,success,en,13,2026-10-08T06:00:00Z
+CMT_00122,POST_0120,youtube,"Brilliant video presentation, very engaging to watch.",Neutral,Positive,success,en,18,2026-09-17T12:00:00Z
+CMT_00123,POST_0086,youtube,I can't even count how many times this has happened to me.,Relatable,Negative,success,en,3,2026-10-16T18:00:00Z
+CMT_00124,POST_0031,instagram,"Brilliant video presentation, very engaging to watch.",Neutral,Positive,success,en,0,2026-09-17T18:00:00Z
+CMT_00125,POST_0017,instagram,"Solid educational breakdown, thank you for sharing.",Neutral,Positive,success,en,2,2026-10-13T18:00:00Z
+CMT_00126,POST_0059,instagram,Good job on the animation breakdown.,Neutral,Positive,success,en,4,2026-09-21T00:00:00Z
+CMT_00127,POST_0002,instagram,I had this exact breakdown yesterday at my desk.,Relatable,Negative,success,en,13,2026-09-30T06:00:00Z
+CMT_00128,POST_0010,instagram,I am in this video and I don't like it haha.,Relatable,Neutral,success,en,15,2026-10-05T06:00:00Z
+CMT_00129,POST_0065,instagram,The procrastination loop you described is my entire semester.,Relatable,Negative,success,en,0,2026-09-17T18:00:00Z
+CMT_00130,POST_0120,youtube,"Same here, been dealing with this since college.",Relatable,Neutral,success,en,5,2026-09-23T06:00:00Z
+CMT_00131,POST_0113,youtube,My exact thoughts when I opened LinkedIn today.,Relatable,Neutral,success,en,4,2026-09-16T12:00:00Z
+CMT_00132,POST_0037,instagram,"Interesting theory, but peer-reviewed evidence is mixed.",Neutral,Neutral,success,en,2,2026-09-11T00:00:00Z
+CMT_00133,POST_0107,youtube,Thanks captain obvious for this revelation.,Neutral,Negative,success,en,1,2026-10-05T18:00:00Z
+CMT_00134,POST_0079,instagram,"Awesome editing, what a visual treat!",Neutral,Positive,success,en,3,2026-11-02T18:00:00Z
+CMT_00135,POST_0086,youtube,Exactly what I am experiencing right now with my job.,Relatable,Negative,success,en,22,2026-10-23T06:00:00Z
+CMT_00136,POST_0120,youtube,Good job on the animation breakdown.,Neutral,Positive,success,en,3,2026-10-13T06:00:00Z
+CMT_00137,POST_0113,youtube,This hits home so hard. Grad school is breaking me.,Relatable,Negative,success,en,5,2026-09-09T12:00:00Z
+CMT_00138,POST_0015,instagram,What audio interface are you running?,Neutral,Neutral,success,en,9,2026-10-27T18:00:00Z
+CMT_00139,POST_0096,youtube,Every word here describes what I've been silently enduring.,Relatable,Negative,success,en,3,2026-10-06T06:00:00Z
+CMT_00140,POST_0035,instagram,"I wake up at 5am, make coffee, and stare at the wall in existential dread.",Relatable,Negative,success,en,28,2026-09-19T00:00:00Z
+CMT_00141,POST_0092,youtube,I felt so guilty about doing this until I saw your post.,Relatable,Positive,success,en,26,2026-09-22T18:00:00Z
+CMT_00142,POST_0088,youtube,I can't even count how many times this has happened to me.,Relatable,Negative,success,en,2,2026-10-11T12:00:00Z
+CMT_00143,POST_0065,instagram,What audio interface are you running?,Neutral,Neutral,success,en,5,2026-10-02T06:00:00Z
+CMT_00144,POST_0116,youtube,Which lens did you pair with your Sony body?,Neutral,Neutral,success,en,2,2026-10-29T00:00:00Z
+CMT_00145,POST_0012,instagram,"I struggle with this daily, feels like everyone else has it figured out.",Relatable,Negative,success,en,2,2026-10-11T12:00:00Z
+CMT_00146,POST_0107,youtube,I disagree with your methodology in this experiment.,Neutral,Negative,success,en,0,2026-09-18T12:00:00Z
+CMT_00147,POST_0001,instagram,My anxiety has been telling me this all week.,Relatable,Negative,success,en,7,2026-09-22T06:00:00Z
+CMT_00148,POST_0082,instagram,"Same here, been dealing with this since college.",Relatable,Neutral,success,en,5,2026-11-02T12:00:00Z
+CMT_00149,POST_0021,instagram,What audio interface are you running?,Neutral,Neutral,success,en,0,2026-10-18T06:00:00Z
+CMT_00150,POST_0071,instagram,Another generic productivity guru giving generic advice.,Neutral,Negative,success,en,2,2026-10-16T00:00:00Z
+CMT_00151,POST_0072,instagram,I think you should invest in a better pop filter.,Neutral,Negative,success,en,19,2026-09-01T12:00:00Z
+CMT_00152,POST_0010,instagram,I hate how accurately this captures my imposter syndrome.,Relatable,Negative,success,en,2,2026-10-31T06:00:00Z
+CMT_00153,POST_0070,instagram,This is me pretending to have my life together at family dinners.,Relatable,Negative,success,en,1,2026-09-03T06:00:00Z
+CMT_00154,POST_0075,instagram,"Interesting theory, but peer-reviewed evidence is mixed.",Neutral,Neutral,success,en,5,2026-10-06T06:00:00Z
+CMT_00155,POST_0056,instagram,Does anyone else get this sick feeling before team meetings?,Relatable,Negative,success,en,33,2026-09-09T00:00:00Z
+CMT_00156,POST_0040,instagram,Living this exact nightmare at my workplace right now.,Relatable,Negative,success,en,2,2026-09-24T06:00:00Z
+CMT_00157,POST_0116,youtube,Living this exact nightmare at my workplace right now.,Relatable,Negative,success,en,8,2026-09-23T18:00:00Z
+CMT_00158,POST_0088,youtube,I felt so guilty about doing this until I saw your post.,Relatable,Positive,success,en,11,2026-09-16T18:00:00Z
+CMT_00159,POST_0046,instagram,This hits home so hard. Grad school is breaking me.,Relatable,Negative,success,en,2,2026-10-20T18:00:00Z
+CMT_00160,POST_0080,instagram,I prefer the previous editing style you had.,Neutral,Neutral,success,en,10,2026-10-18T18:00:00Z
+CMT_00161,POST_0119,youtube,"I wake up at 5am, make coffee, and stare at the wall in existential dread.",Relatable,Negative,success,en,3,2026-10-30T12:00:00Z
+CMT_00162,POST_0111,youtube,Could you share the color grading LUT for this?,Neutral,Neutral,success,en,8,2026-09-11T06:00:00Z
+CMT_00163,POST_0113,youtube,I feel attacked by the accuracy of this reel.,Relatable,Neutral,success,en,8,2026-09-27T06:00:00Z
+CMT_00164,POST_0023,instagram,"I needed to hear this today, thank you so much.",Relatable,Positive,success,en,6,2026-10-18T00:00:00Z
+CMT_00165,POST_0101,youtube,Wonderful production value on this project.,Neutral,Positive,success,en,0,2026-10-30T12:00:00Z
+CMT_00166,POST_0103,youtube,I found this video while browsing the explore tab.,Neutral,Neutral,success,en,14,2026-10-13T18:00:00Z
+CMT_00167,POST_0035,instagram,Is this filmed in 24fps or 60fps?,Neutral,Neutral,success,en,3,2026-09-11T00:00:00Z
+CMT_00168,POST_0049,instagram,Every word here describes what I've been silently enduring.,Relatable,Negative,success,en,1,2026-10-26T18:00:00Z
+CMT_00169,POST_0110,youtube,"Story of my life right now, can't even focus for 10 minutes.",Relatable,Negative,success,en,0,2026-10-01T00:00:00Z
+CMT_00170,POST_0026,instagram,What camera did you use to film this video?,Neutral,Neutral,success,en,7,2026-10-23T06:00:00Z
+CMT_00171,POST_0045,instagram,cool,Insufficient_Context,Positive,insufficient_context,en,9,2026-09-20T12:00:00Z
+CMT_00172,POST_0029,instagram,Which microphone is that on your desk?,Neutral,Neutral,success,en,0,2026-09-02T12:00:00Z
+CMT_00173,POST_0052,instagram,I swear we all live the same collective experience in our 20s.,Relatable,Positive,success,en,5,2026-09-22T00:00:00Z
+CMT_00174,POST_0111,youtube,"Checked your page, looks super cool and clean.",Neutral,Positive,success,en,2,2026-09-05T06:00:00Z
+CMT_00175,POST_0045,instagram,"Checked your page, looks super cool and clean.",Neutral,Positive,success,en,8,2026-10-12T00:00:00Z
+CMT_00176,POST_0087,youtube,I bought that camera last year and returned it.,Neutral,Negative,success,en,1,2026-11-02T18:00:00Z
+CMT_00177,POST_0004,instagram,"Great thumbnail, really caught my attention.",Neutral,Positive,success,en,9,2026-09-08T06:00:00Z
+CMT_00178,POST_0023,instagram,What app do you use to track your daily habits?,Neutral,Neutral,success,en,3,2026-10-08T00:00:00Z
+CMT_00179,POST_0005,instagram,What audio interface are you running?,Neutral,Neutral,success,en,22,2026-09-07T18:00:00Z
+CMT_00180,POST_0045,instagram,"Groundbreaking advice, just stop procrastinating guys.",Neutral,Negative,success,en,1,2026-10-17T12:00:00Z
+CMT_00181,POST_0056,instagram,"Brilliant video presentation, very engaging to watch.",Neutral,Positive,success,en,3,2026-10-09T18:00:00Z
+CMT_00182,POST_0050,instagram,Bro is narrating my 20s better than my therapist.,Relatable,Positive,success,en,0,2026-10-28T12:00:00Z
+CMT_00183,POST_0033,instagram,My bank account and I felt this deeply.,Relatable,Negative,success,en,20,2026-09-03T18:00:00Z
+CMT_00184,POST_0001,instagram,"Groundbreaking advice, just stop procrastinating guys.",Neutral,Negative,success,en,16,2026-10-04T06:00:00Z
+CMT_00185,POST_0047,instagram,This is the most relatable thing I have seen all month.,Relatable,Positive,success,en,2,2026-09-28T12:00:00Z
+CMT_00186,POST_0086,youtube,My exact thoughts when I opened LinkedIn today.,Relatable,Neutral,success,en,8,2026-10-29T18:00:00Z
+CMT_00187,POST_0080,instagram,"Great thumbnail, really caught my attention.",Neutral,Positive,success,en,13,2026-09-21T00:00:00Z
+CMT_00188,POST_0093,youtube,"I feel so seen right now, definitely sharing with my partner.",Relatable,Positive,success,en,6,2026-10-28T12:00:00Z
+CMT_00189,POST_0065,instagram,Good job on the animation breakdown.,Neutral,Positive,success,en,6,2026-09-20T18:00:00Z
+CMT_00190,POST_0042,instagram,I prefer the previous editing style you had.,Neutral,Neutral,success,en,2,2026-09-26T18:00:00Z
+CMT_00191,POST_0071,instagram,"Really well-crafted video, good pacing throughout.",Neutral,Positive,success,en,0,2026-09-09T00:00:00Z
+CMT_00192,POST_0054,instagram,I swear we all live the same collective experience in our 20s.,Relatable,Positive,success,en,18,2026-10-13T12:00:00Z
+CMT_00193,POST_0087,youtube,Shared this with my university research group.,Neutral,Positive,success,en,18,2026-10-18T18:00:00Z
+CMT_00194,POST_0079,instagram,This is 100% me during every exam week.,Relatable,Neutral,success,en,8,2026-10-07T06:00:00Z
+CMT_00195,POST_0052,instagram,"Awesome editing, what a visual treat!",Neutral,Positive,success,en,3,2026-10-06T00:00:00Z
+CMT_00196,POST_0039,instagram,This happens to me every single morning.,Relatable,Negative,success,en,3,2026-09-19T06:00:00Z
+CMT_00197,POST_0056,instagram,I felt so guilty about doing this until I saw your post.,Relatable,Positive,success,en,10,2026-10-21T06:00:00Z
+CMT_00198,POST_0060,instagram,Top tier visuals as always!,Neutral,Positive,success,en,18,2026-09-29T06:00:00Z
+CMT_00199,POST_0087,youtube,Another generic productivity guru giving generic advice.,Neutral,Negative,success,en,17,2026-09-14T12:00:00Z
+CMT_00200,POST_0102,youtube,👀,Insufficient_Context,Neutral,insufficient_context,en,12,2026-10-28T12:00:00Z
+CMT_00201,POST_0085,instagram,I spent 4 hours rewriting one paragraph because of perfectionism.,Relatable,Negative,success,en,8,2026-09-06T06:00:00Z
+CMT_00202,POST_0066,instagram,Such high production quality and brilliant lighting!,Neutral,Positive,success,en,0,2026-10-13T06:00:00Z
+CMT_00203,POST_0012,instagram,Wonderful production value on this project.,Neutral,Positive,success,en,1,2026-10-23T06:00:00Z
+CMT_00204,POST_0087,youtube,Could you share the color grading LUT for this?,Neutral,Neutral,success,en,18,2026-09-20T18:00:00Z
+CMT_00205,POST_0104,youtube,What editing software was used for this transition?,Neutral,Neutral,success,en,7,2026-09-13T12:00:00Z
+CMT_00206,POST_0004,instagram,Does anyone else get this sick feeling before team meetings?,Relatable,Negative,success,en,0,2026-09-03T18:00:00Z
+CMT_00207,POST_0061,instagram,Where did you buy that desk lamp?,Neutral,Neutral,success,en,0,2026-10-10T00:00:00Z
+CMT_00208,POST_0059,instagram,I had this exact breakdown yesterday at my desk.,Relatable,Negative,success,en,8,2026-09-27T12:00:00Z
+CMT_00209,POST_0092,youtube,I swear we all live the same collective experience in our 20s.,Relatable,Positive,success,en,0,2026-10-15T12:00:00Z
+CMT_00210,POST_0064,instagram,The pacing was a bit rushed towards the end.,Neutral,Negative,success,en,1,2026-09-26T12:00:00Z
+CMT_00211,POST_0019,instagram,Where did you buy that desk lamp?,Neutral,Neutral,success,en,6,2026-10-12T18:00:00Z
+CMT_00212,POST_0115,youtube,I thought I was the only one going through this.,Relatable,Neutral,success,en,9,2026-10-19T00:00:00Z
+CMT_00213,POST_0100,youtube,Every word here describes what I've been silently enduring.,Relatable,Negative,success,en,8,2026-09-28T00:00:00Z
+CMT_00214,POST_0023,instagram,What camera did you use to film this video?,Neutral,Neutral,success,en,2,2026-10-22T06:00:00Z
+CMT_00215,POST_0007,instagram,👍🔥,Insufficient_Context,Positive,insufficient_context,en,9,2026-10-06T12:00:00Z
+CMT_00216,POST_0118,youtube,Is this filmed in 24fps or 60fps?,Neutral,Neutral,success,en,2,2026-10-25T06:00:00Z
+CMT_00217,POST_0059,instagram,"I feel so seen right now, definitely sharing with my partner.",Relatable,Positive,success,en,3,2026-09-09T12:00:00Z
+CMT_00218,POST_0086,youtube,👍🔥,Insufficient_Context,Positive,insufficient_context,en,10,2026-10-04T18:00:00Z
+CMT_00219,POST_0097,youtube,Fantastic storytelling and crisp sound design.,Neutral,Positive,success,en,8,2026-10-28T00:00:00Z
+CMT_00220,POST_0079,instagram,Another generic productivity guru giving generic advice.,Neutral,Negative,success,en,15,2026-10-23T00:00:00Z
+CMT_00221,POST_0107,youtube,I think you should invest in a better pop filter.,Neutral,Negative,success,en,8,2026-10-29T00:00:00Z
+CMT_00222,POST_0115,youtube,lol,Insufficient_Context,Neutral,insufficient_context,en,6,2026-09-11T00:00:00Z
+CMT_00223,POST_0058,instagram,👀,Insufficient_Context,Neutral,insufficient_context,en,0,2026-09-17T12:00:00Z
+CMT_00224,POST_0108,youtube,Is this filmed in 24fps or 60fps?,Neutral,Neutral,success,en,3,2026-10-11T18:00:00Z
+CMT_00225,POST_0099,youtube,"Great video, keep up the awesome content!",Neutral,Positive,success,en,2,2026-10-20T18:00:00Z
+CMT_00226,POST_0081,instagram,bhai ye toh meri hi kahani hai bilkul sach bola aapne,Relatable,Positive,unsupported_language,non-en,2,2026-09-16T06:00:00Z
+CMT_00227,POST_0057,instagram,"Great video, keep up the awesome content!",Neutral,Positive,success,en,28,2026-09-05T18:00:00Z
+CMT_00228,POST_0031,instagram,"Nice visuals, loved the cinematic transitions.",Neutral,Positive,success,en,3,2026-09-18T06:00:00Z
+CMT_00229,POST_0041,instagram,Wonderful production value on this project.,Neutral,Positive,success,en,17,2026-10-28T00:00:00Z
+CMT_00230,POST_0018,instagram,Stop describing my daily routine please lol.,Relatable,Positive,success,en,7,2026-09-10T12:00:00Z
+CMT_00231,POST_0050,instagram,What song is playing in the background?,Neutral,Neutral,success,en,12,2026-10-15T06:00:00Z
+CMT_00232,POST_0091,youtube,"I wake up at 5am, make coffee, and stare at the wall in existential dread.",Relatable,Negative,success,en,5,2026-09-14T12:00:00Z
+CMT_00233,POST_0054,instagram,I do this every single time I start studying.,Relatable,Neutral,success,en,6,2026-09-27T00:00:00Z
+CMT_00234,POST_0070,instagram,"Great thumbnail, really caught my attention.",Neutral,Positive,success,en,5,2026-09-30T18:00:00Z
+CMT_00235,POST_0008,instagram,I watched this at 2x speed.,Neutral,Neutral,success,en,1,2026-09-14T00:00:00Z
+CMT_00236,POST_0050,instagram,I am a software engineer and I don't use this stack.,Neutral,Neutral,success,en,10,2026-10-28T18:00:00Z
+CMT_00237,POST_0110,youtube,Never felt so understood by an Instagram post.,Relatable,Positive,success,en,2,2026-10-27T06:00:00Z
+CMT_00238,POST_0062,instagram,Shared this with my university research group.,Neutral,Positive,success,en,0,2026-09-01T06:00:00Z
+CMT_00239,POST_0039,instagram,The audio was slightly quiet in the opening chapter.,Neutral,Negative,success,en,8,2026-10-19T00:00:00Z
+CMT_00240,POST_0110,youtube,Please add chapters or timestamps in the description.,Neutral,Neutral,success,en,1,2026-10-28T00:00:00Z
+CMT_00241,POST_0069,instagram,I am a software engineer and I don't use this stack.,Neutral,Neutral,success,en,22,2026-10-18T18:00:00Z
+CMT_00242,POST_0063,instagram,What camera did you use to film this video?,Neutral,Neutral,success,en,24,2026-09-15T00:00:00Z
+CMT_00243,POST_0056,instagram,Where can I find the background music track?,Neutral,Neutral,success,en,19,2026-10-02T00:00:00Z
+CMT_00244,POST_0050,instagram,"I felt this in my soul, so painfully true.",Relatable,Negative,success,en,3,2026-09-22T12:00:00Z
+CMT_00245,POST_0093,youtube,I think the lighting in the background is a bit harsh.,Neutral,Negative,success,en,0,2026-09-11T12:00:00Z
+CMT_00246,POST_0118,youtube,???,Insufficient_Context,Neutral,insufficient_context,en,21,2026-09-09T00:00:00Z
+CMT_00247,POST_0117,youtube,"I needed to hear this today, thank you so much.",Relatable,Positive,success,en,4,2026-09-26T00:00:00Z
+CMT_00248,POST_0011,instagram,"I needed to hear this today, thank you so much.",Relatable,Positive,success,en,27,2026-10-12T00:00:00Z
+CMT_00249,POST_0018,instagram,I think you should invest in a better pop filter.,Neutral,Negative,success,en,26,2026-10-26T06:00:00Z
+CMT_00250,POST_0024,instagram,👍🔥,Insufficient_Context,Positive,insufficient_context,en,15,2026-09-04T00:00:00Z
+CMT_00251,POST_0049,instagram,What app do you use to track your daily habits?,Neutral,Neutral,success,en,2,2026-09-21T18:00:00Z
+CMT_00252,POST_0059,instagram,The procrastination loop you described is my entire semester.,Relatable,Negative,success,en,3,2026-09-21T18:00:00Z
+CMT_00253,POST_0098,youtube,Not sure I agree with your second argument.,Neutral,Negative,success,en,15,2026-10-27T06:00:00Z
+CMT_00254,POST_0036,instagram,Shared this with my university research group.,Neutral,Positive,success,en,3,2026-10-19T00:00:00Z
+CMT_00255,POST_0033,instagram,I am a software engineer and I don't use this stack.,Neutral,Neutral,success,en,1,2026-10-24T06:00:00Z
+CMT_00256,POST_0061,instagram,Stop describing my daily routine please lol.,Relatable,Positive,success,en,6,2026-09-02T00:00:00Z
+CMT_00257,POST_0045,instagram,"I struggle with this daily, feels like everyone else has it figured out.",Relatable,Negative,success,en,22,2026-09-15T06:00:00Z
+CMT_00258,POST_0100,youtube,My exact thoughts when I opened LinkedIn today.,Relatable,Neutral,success,en,9,2026-11-01T06:00:00Z
+CMT_00259,POST_0097,youtube,Living this exact nightmare at my workplace right now.,Relatable,Negative,success,en,6,2026-09-02T18:00:00Z
+CMT_00260,POST_0026,instagram,Is this filmed in 24fps or 60fps?,Neutral,Neutral,success,en,0,2026-10-24T12:00:00Z
+CMT_00261,POST_0080,instagram,Never felt so understood by an Instagram post.,Relatable,Positive,success,en,7,2026-09-10T18:00:00Z
+CMT_00262,POST_0017,instagram,What font did you use for the animated title text?,Neutral,Neutral,success,en,36,2026-10-01T06:00:00Z
+CMT_00263,POST_0073,instagram,Bro is narrating my 20s better than my therapist.,Relatable,Positive,success,en,1,2026-10-31T12:00:00Z
+CMT_00264,POST_0060,instagram,I am suffering from this exact issue at my startup.,Relatable,Negative,success,en,5,2026-10-15T18:00:00Z
+CMT_00265,POST_0099,youtube,Can you drop the link to your studio setup?,Neutral,Neutral,success,en,16,2026-09-24T12:00:00Z
+CMT_00266,POST_0078,instagram,I literally paced around my room for an hour avoiding one phone call.,Relatable,Negative,success,en,10,2026-10-09T18:00:00Z
+CMT_00267,POST_0100,youtube,Bro is narrating my 20s better than my therapist.,Relatable,Positive,success,en,9,2026-10-23T06:00:00Z
+CMT_00268,POST_0040,instagram,I freeze whenever my boss asks for a quick sync.,Relatable,Negative,success,en,9,2026-09-07T18:00:00Z
+CMT_00269,POST_0119,youtube,"I needed to hear this today, thank you so much.",Relatable,Positive,success,en,3,2026-09-20T18:00:00Z
+CMT_00270,POST_0051,instagram,Could you do a follow-up video on YouTube automation?,Neutral,Neutral,success,en,2,2026-10-31T06:00:00Z
+CMT_00271,POST_0010,instagram,This is the most relatable thing I have seen all month.,Relatable,Positive,success,en,13,2026-10-08T18:00:00Z
+CMT_00272,POST_0014,instagram,Where did you buy that desk lamp?,Neutral,Neutral,success,en,13,2026-10-15T12:00:00Z
+CMT_00273,POST_0109,youtube,"Awesome editing, what a visual treat!",Neutral,Positive,success,en,16,2026-10-14T18:00:00Z
+CMT_00274,POST_0102,youtube,Why is this me trying to submit an assignment at 11:59 pm?,Relatable,Negative,success,en,19,2026-11-02T18:00:00Z
+CMT_00275,POST_0045,instagram,Living this exact nightmare at my workplace right now.,Relatable,Negative,success,en,5,2026-10-05T00:00:00Z
+CMT_00276,POST_0085,instagram,I think you should invest in a better pop filter.,Neutral,Negative,success,en,5,2026-09-24T12:00:00Z
+CMT_00277,POST_0065,instagram,My exact thoughts when I opened LinkedIn today.,Relatable,Neutral,success,en,12,2026-10-12T06:00:00Z
+CMT_00278,POST_0002,instagram,I disagree with the conclusion presented at 02:15.,Neutral,Negative,success,en,8,2026-10-25T06:00:00Z
+CMT_00279,POST_0106,youtube,I am a software engineer and I don't use this stack.,Neutral,Neutral,success,en,9,2026-10-02T06:00:00Z
+CMT_00280,POST_0056,instagram,Every word here describes what I've been silently enduring.,Relatable,Negative,success,en,12,2026-11-01T06:00:00Z
+CMT_00281,POST_0082,instagram,Good overview of the topic for beginners.,Neutral,Positive,success,en,17,2026-10-28T00:00:00Z
+CMT_00282,POST_0091,youtube,cool,Insufficient_Context,Positive,insufficient_context,en,3,2026-09-10T18:00:00Z
+CMT_00283,POST_0023,instagram,"Groundbreaking advice, just stop procrastinating guys.",Neutral,Negative,success,en,3,2026-10-17T18:00:00Z
+CMT_00284,POST_0079,instagram,Where can I find the background music track?,Neutral,Neutral,success,en,0,2026-10-22T12:00:00Z
+CMT_00285,POST_0060,instagram,Das kenne ich zu gut aus eigener beruflicher Erfahrung.,Relatable,Neutral,unsupported_language,non-en,6,2026-09-28T18:00:00Z
+CMT_00286,POST_0042,instagram,Are you using Premiere Pro or DaVinci Resolve?,Neutral,Neutral,success,en,0,2026-10-25T12:00:00Z
+CMT_00287,POST_0107,youtube,Where did you buy that desk lamp?,Neutral,Neutral,success,en,5,2026-10-30T18:00:00Z
+CMT_00288,POST_0036,instagram,Felt that deep in my chest. Career burnout is real.,Relatable,Negative,success,en,6,2026-10-27T06:00:00Z
+CMT_00289,POST_0032,instagram,idk,Insufficient_Context,Neutral,insufficient_context,en,2,2026-10-19T00:00:00Z
+CMT_00290,POST_0073,instagram,👍🔥,Insufficient_Context,Positive,insufficient_context,en,7,2026-10-10T00:00:00Z
+CMT_00291,POST_0044,instagram,Shared this with my university research group.,Neutral,Positive,success,en,0,2026-09-02T18:00:00Z
+CMT_00292,POST_0109,youtube,merci beaucoup pour cette explication tres claire,Neutral,Positive,unsupported_language,non-en,0,2026-09-21T18:00:00Z
+CMT_00293,POST_0063,instagram,"So true, I literally cancel plans just to sit in silence.",Relatable,Neutral,success,en,13,2026-09-14T12:00:00Z
+CMT_00294,POST_0103,youtube,The audio was slightly quiet in the opening chapter.,Neutral,Negative,success,en,3,2026-09-17T12:00:00Z
+CMT_00295,POST_0036,instagram,I disagree with the conclusion presented at 02:15.,Neutral,Negative,success,en,1,2026-10-27T06:00:00Z
+CMT_00296,POST_0072,instagram,"Great video, keep up the awesome content!",Neutral,Positive,success,en,5,2026-09-01T12:00:00Z
+CMT_00297,POST_0011,instagram,My bank account and I felt this deeply.,Relatable,Negative,success,en,11,2026-09-16T06:00:00Z
+CMT_00298,POST_0063,instagram,I prefer the previous editing style you had.,Neutral,Neutral,success,en,1,2026-10-06T12:00:00Z
+CMT_00299,POST_0089,youtube,What font did you use for the animated title text?,Neutral,Neutral,success,en,7,2026-10-01T06:00:00Z
+CMT_00300,POST_0058,instagram,este video me describe perfectamente amigo mio,Relatable,Positive,unsupported_language,non-en,0,2026-10-21T12:00:00Z
+CMT_00301,POST_0012,instagram,"Too accurate, please stop attacking me lol.",Relatable,Positive,success,en,0,2026-09-19T18:00:00Z
+CMT_00302,POST_0052,instagram,What camera did you use to film this video?,Neutral,Neutral,success,en,6,2026-10-15T06:00:00Z
+CMT_00303,POST_0040,instagram,Where did you buy that desk lamp?,Neutral,Neutral,success,en,6,2026-10-13T06:00:00Z
+CMT_00304,POST_0061,instagram,"Interesting theory, but peer-reviewed evidence is mixed.",Neutral,Neutral,success,en,8,2026-10-06T06:00:00Z
+CMT_00305,POST_0055,instagram,This was very informative and clearly articulated.,Neutral,Positive,success,en,10,2026-10-18T12:00:00Z
+CMT_00306,POST_0046,instagram,"Great thumbnail, really caught my attention.",Neutral,Positive,success,en,29,2026-10-15T18:00:00Z
+CMT_00307,POST_0035,instagram,ok,Insufficient_Context,Neutral,insufficient_context,en,5,2026-09-20T12:00:00Z
+CMT_00308,POST_0030,instagram,Which lens did you pair with your Sony body?,Neutral,Neutral,success,en,3,2026-09-08T12:00:00Z
+CMT_00309,POST_0041,instagram,I swear we all live the same collective experience in our 20s.,Relatable,Positive,success,en,12,2026-09-08T12:00:00Z
+CMT_00310,POST_0025,instagram,"I thought I was just lazy, but this explains the executive dysfunction.",Relatable,Positive,success,en,2,2026-09-14T18:00:00Z
+CMT_00311,POST_0036,instagram,Das kenne ich zu gut aus eigener beruflicher Erfahrung.,Relatable,Neutral,unsupported_language,non-en,4,2026-10-17T06:00:00Z
+CMT_00312,POST_0013,instagram,Such high production quality and brilliant lighting!,Neutral,Positive,success,en,0,2026-10-24T06:00:00Z
+CMT_00313,POST_0038,instagram,I swear we all live the same collective experience in our 20s.,Relatable,Positive,success,en,0,2026-09-15T12:00:00Z
+CMT_00314,POST_0023,instagram,Good overview of the topic for beginners.,Neutral,Positive,success,en,26,2026-09-20T06:00:00Z
+CMT_00315,POST_0091,youtube,Why did you have to call me out like this?!,Relatable,Neutral,success,en,14,2026-10-05T00:00:00Z
+CMT_00316,POST_0036,instagram,I literally cried watching this because I felt so isolated until now.,Relatable,Negative,success,en,9,2026-09-03T18:00:00Z
+CMT_00317,POST_0071,instagram,"I struggle with this daily, feels like everyone else has it figured out.",Relatable,Negative,success,en,4,2026-09-19T12:00:00Z
+CMT_00318,POST_0082,instagram,I literally cried watching this because I felt so isolated until now.,Relatable,Negative,success,en,1,2026-10-26T12:00:00Z
+CMT_00319,POST_0014,instagram,este video me describe perfectamente amigo mio,Relatable,Positive,unsupported_language,non-en,1,2026-10-26T18:00:00Z
+CMT_00320,POST_0074,instagram,Why did you have to call me out like this?!,Relatable,Neutral,success,en,2,2026-09-19T00:00:00Z
+CMT_00321,POST_0062,instagram,...,Insufficient_Context,Neutral,insufficient_context,en,6,2026-09-29T00:00:00Z
+CMT_00322,POST_0024,instagram,I disagree with the conclusion presented at 02:15.,Neutral,Negative,success,en,10,2026-11-01T18:00:00Z
+CMT_00323,POST_0033,instagram,"I struggle with this daily, feels like everyone else has it figured out.",Relatable,Negative,success,en,8,2026-10-31T00:00:00Z
+CMT_00324,POST_0015,instagram,C'est tellement vrai pour moi aussi dans ma vie.,Relatable,Positive,unsupported_language,non-en,2,2026-10-23T12:00:00Z
+CMT_00325,POST_0052,instagram,I do this every single time I start studying.,Relatable,Neutral,success,en,24,2026-10-02T06:00:00Z
+CMT_00326,POST_0074,instagram,I had this exact breakdown yesterday at my desk.,Relatable,Negative,success,en,10,2026-10-11T06:00:00Z
+CMT_00327,POST_0020,instagram,"I struggle with this daily, feels like everyone else has it figured out.",Relatable,Negative,success,en,6,2026-09-10T12:00:00Z
+CMT_00328,POST_0011,instagram,"Awesome editing, what a visual treat!",Neutral,Positive,success,en,7,2026-09-16T18:00:00Z
+CMT_00329,POST_0072,instagram,Why is this me trying to submit an assignment at 11:59 pm?,Relatable,Negative,success,en,4,2026-10-19T18:00:00Z
+CMT_00330,POST_0078,instagram,I watched this at 2x speed.,Neutral,Neutral,success,en,2,2026-10-09T00:00:00Z
+CMT_00331,POST_0100,youtube,What editing software was used for this transition?,Neutral,Neutral,success,en,3,2026-10-04T06:00:00Z
+CMT_00332,POST_0058,instagram,Shared this with my university research group.,Neutral,Positive,success,en,11,2026-10-29T00:00:00Z
+CMT_00333,POST_0039,instagram,Another generic productivity guru giving generic advice.,Neutral,Negative,success,en,0,2026-10-26T00:00:00Z
+CMT_00334,POST_0040,instagram,I think you should invest in a better pop filter.,Neutral,Negative,success,en,0,2026-10-07T06:00:00Z
+CMT_00335,POST_0079,instagram,Are you living inside my brain? This was literally my morning.,Relatable,Neutral,success,en,0,2026-11-01T06:00:00Z
+CMT_00336,POST_0098,youtube,I am in this video and I don't like it haha.,Relatable,Neutral,success,en,0,2026-09-14T06:00:00Z
+CMT_00337,POST_0034,instagram,The procrastination loop you described is my entire semester.,Relatable,Negative,success,en,15,2026-10-13T06:00:00Z
+CMT_00338,POST_0021,instagram,Stop describing my daily routine please lol.,Relatable,Positive,success,en,9,2026-09-16T06:00:00Z
+CMT_00339,POST_0071,instagram,This is 100% me during every exam week.,Relatable,Neutral,success,en,5,2026-09-05T18:00:00Z
+CMT_00340,POST_0001,instagram,I have 50 tabs open right now and can't complete one sentence.,Relatable,Negative,success,en,0,2026-09-27T00:00:00Z
+CMT_00341,POST_0089,youtube,idk,Insufficient_Context,Neutral,insufficient_context,en,5,2026-10-09T00:00:00Z
+CMT_00342,POST_0038,instagram,...,Insufficient_Context,Neutral,insufficient_context,en,5,2026-09-03T00:00:00Z
+CMT_00343,POST_0037,instagram,What song is playing in the background?,Neutral,Neutral,success,en,1,2026-10-16T00:00:00Z
+CMT_00344,POST_0090,youtube,Such high production quality and brilliant lighting!,Neutral,Positive,success,en,4,2026-10-26T00:00:00Z
+CMT_00345,POST_0010,instagram,ok,Insufficient_Context,Neutral,insufficient_context,en,4,2026-10-14T18:00:00Z
+CMT_00346,POST_0119,youtube,What song is playing in the background?,Neutral,Neutral,success,en,7,2026-09-17T18:00:00Z
+CMT_00347,POST_0055,instagram,This is the most relatable thing I have seen all month.,Relatable,Positive,success,en,8,2026-09-08T06:00:00Z
+CMT_00348,POST_0083,instagram,What editing software was used for this transition?,Neutral,Neutral,success,en,0,2026-09-10T12:00:00Z
+CMT_00349,POST_0106,youtube,Are you using Premiere Pro or DaVinci Resolve?,Neutral,Neutral,success,en,3,2026-09-10T00:00:00Z
+CMT_00350,POST_0008,instagram,I had this exact breakdown yesterday at my desk.,Relatable,Negative,success,en,7,2026-09-11T12:00:00Z
+CMT_00351,POST_0077,instagram,Super clean aesthetics and color palette.,Neutral,Positive,success,en,5,2026-10-18T18:00:00Z
+CMT_00352,POST_0057,instagram,"Nice visuals, loved the cinematic transitions.",Neutral,Positive,success,en,15,2026-09-08T18:00:00Z
+CMT_00353,POST_0089,youtube,???,Insufficient_Context,Neutral,insufficient_context,en,8,2026-09-20T06:00:00Z
+CMT_00354,POST_0035,instagram,I think the lighting in the background is a bit harsh.,Neutral,Negative,success,en,1,2026-10-03T00:00:00Z
+CMT_00355,POST_0057,instagram,merci beaucoup pour cette explication tres claire,Neutral,Positive,unsupported_language,non-en,0,2026-09-06T00:00:00Z
+CMT_00356,POST_0114,youtube,Living this exact nightmare at my workplace right now.,Relatable,Negative,success,en,8,2026-09-28T12:00:00Z
+CMT_00357,POST_0078,instagram,Top tier visuals as always!,Neutral,Positive,success,en,0,2026-09-17T00:00:00Z
+CMT_00358,POST_0012,instagram,"I needed to hear this today, thank you so much.",Relatable,Positive,success,en,7,2026-09-15T12:00:00Z
+CMT_00359,POST_0098,youtube,Never felt so understood by an Instagram post.,Relatable,Positive,success,en,22,2026-10-14T00:00:00Z
+CMT_00360,POST_0074,instagram,Are you using Premiere Pro or DaVinci Resolve?,Neutral,Neutral,success,en,6,2026-09-03T12:00:00Z
+CMT_00361,POST_0061,instagram,This is 100% me during every exam week.,Relatable,Neutral,success,en,3,2026-10-04T00:00:00Z
+CMT_00362,POST_0118,youtube,Another generic productivity guru giving generic advice.,Neutral,Negative,success,en,8,2026-09-18T18:00:00Z
+CMT_00363,POST_0075,instagram,"So true, I literally cancel plans just to sit in silence.",Relatable,Neutral,success,en,4,2026-09-28T18:00:00Z
+CMT_00364,POST_0012,instagram,este video me describe perfectamente amigo mio,Relatable,Positive,unsupported_language,non-en,6,2026-10-01T00:00:00Z
+CMT_00365,POST_0053,instagram,Interesting perspective on modern education trends.,Neutral,Positive,success,en,22,2026-09-22T06:00:00Z
+CMT_00366,POST_0086,youtube,Top tier visuals as always!,Neutral,Positive,success,en,3,2026-09-07T12:00:00Z
+CMT_00367,POST_0043,instagram,I freeze whenever my boss asks for a quick sync.,Relatable,Negative,success,en,25,2026-09-27T06:00:00Z
+CMT_00368,POST_0037,instagram,merci beaucoup pour cette explication tres claire,Neutral,Positive,unsupported_language,non-en,18,2026-10-13T06:00:00Z
+CMT_00369,POST_0105,youtube,I bought that camera last year and returned it.,Neutral,Negative,success,en,1,2026-10-19T12:00:00Z
+CMT_00370,POST_0059,instagram,"Story of my life right now, can't even focus for 10 minutes.",Relatable,Negative,success,en,0,2026-09-06T12:00:00Z
+CMT_00371,POST_0033,instagram,"Brilliant video presentation, very engaging to watch.",Neutral,Positive,success,en,0,2026-09-21T12:00:00Z
+CMT_00372,POST_0099,youtube,Bro is narrating my 20s better than my therapist.,Relatable,Positive,success,en,0,2026-09-26T18:00:00Z
+CMT_00373,POST_0085,instagram,This happens to me every single morning.,Relatable,Negative,success,en,0,2026-10-26T12:00:00Z
+CMT_00374,POST_0053,instagram,👍🔥,Insufficient_Context,Positive,insufficient_context,en,9,2026-09-04T06:00:00Z
+CMT_00375,POST_0067,instagram,My bank account and I felt this deeply.,Relatable,Negative,success,en,0,2026-09-24T00:00:00Z
+CMT_00376,POST_0081,instagram,que buena camara usas para grabar esto,Neutral,Positive,unsupported_language,non-en,3,2026-09-29T06:00:00Z
+CMT_00377,POST_0027,instagram,"I struggle with this daily, feels like everyone else has it figured out.",Relatable,Negative,success,en,14,2026-09-18T00:00:00Z
+CMT_00378,POST_0119,youtube,"Same here, been dealing with this since college.",Relatable,Neutral,success,en,0,2026-09-19T06:00:00Z
+CMT_00379,POST_0113,youtube,Thanks captain obvious for this revelation.,Neutral,Negative,success,en,13,2026-10-15T12:00:00Z
+CMT_00380,POST_0016,instagram,bhai ye toh meri hi kahani hai bilkul sach bola aapne,Relatable,Positive,unsupported_language,non-en,2,2026-09-02T18:00:00Z
+CMT_00381,POST_0091,youtube,What font did you use for the animated title text?,Neutral,Neutral,success,en,1,2026-09-11T00:00:00Z
+CMT_00382,POST_0071,instagram,Subscribed! Looking forward to your next upload.,Neutral,Positive,success,en,9,2026-09-01T18:00:00Z
+CMT_00383,POST_0012,instagram,I prefer the previous editing style you had.,Neutral,Neutral,success,en,7,2026-09-15T06:00:00Z
+CMT_00384,POST_0060,instagram,Bro is narrating my 20s better than my therapist.,Relatable,Positive,success,en,16,2026-10-31T12:00:00Z
+CMT_00385,POST_0083,instagram,Why is this me trying to submit an assignment at 11:59 pm?,Relatable,Negative,success,en,10,2026-10-24T06:00:00Z
+CMT_00386,POST_0064,instagram,"I wake up at 5am, make coffee, and stare at the wall in existential dread.",Relatable,Negative,success,en,13,2026-10-30T12:00:00Z
+CMT_00387,POST_0066,instagram,"Amazing cinematography, you deserve way more subscribers!",Neutral,Positive,success,en,2,2026-10-16T00:00:00Z
+CMT_00388,POST_0054,instagram,Where can I find the background music track?,Neutral,Neutral,success,en,1,2026-10-24T06:00:00Z
+CMT_00389,POST_0061,instagram,Das kenne ich zu gut aus eigener beruflicher Erfahrung.,Relatable,Neutral,unsupported_language,non-en,11,2026-09-16T12:00:00Z
+CMT_00390,POST_0071,instagram,ok,Insufficient_Context,Neutral,insufficient_context,en,13,2026-09-10T06:00:00Z
+CMT_00391,POST_0025,instagram,The pacing was a bit rushed towards the end.,Neutral,Negative,success,en,37,2026-10-29T18:00:00Z
+CMT_00392,POST_0111,youtube,I do the exact same thing whenever someone gives me a compliment.,Relatable,Neutral,success,en,4,2026-09-05T06:00:00Z
+CMT_00393,POST_0099,youtube,"Great video, keep up the awesome content!",Neutral,Positive,success,en,3,2026-10-21T12:00:00Z
+CMT_00394,POST_0044,instagram,I watched this at 2x speed.,Neutral,Neutral,success,en,11,2026-10-30T18:00:00Z
+CMT_00395,POST_0106,youtube,Are you using Premiere Pro or DaVinci Resolve?,Neutral,Neutral,success,en,3,2026-09-01T00:00:00Z
+CMT_00396,POST_0093,youtube,Such high production quality and brilliant lighting!,Neutral,Positive,success,en,21,2026-09-20T00:00:00Z
+CMT_00397,POST_0111,youtube,este video me describe perfectamente amigo mio,Relatable,Positive,unsupported_language,non-en,15,2026-09-10T12:00:00Z
+CMT_00398,POST_0069,instagram,lol,Insufficient_Context,Neutral,insufficient_context,en,4,2026-10-01T18:00:00Z
+CMT_00399,POST_0043,instagram,This was very informative and clearly articulated.,Neutral,Positive,success,en,11,2026-10-06T06:00:00Z
+CMT_00400,POST_0059,instagram,Could you do a follow-up video on YouTube automation?,Neutral,Neutral,success,en,11,2026-10-30T12:00:00Z
+CMT_00401,POST_0112,youtube,Top tier visuals as always!,Neutral,Positive,success,en,0,2026-09-13T00:00:00Z
+CMT_00402,POST_0074,instagram,What font did you use for the animated title text?,Neutral,Neutral,success,en,18,2026-09-25T12:00:00Z
+CMT_00403,POST_0110,youtube,What song is playing in the background?,Neutral,Neutral,success,en,5,2026-10-20T12:00:00Z
+CMT_00404,POST_0006,instagram,I found this video while browsing the explore tab.,Neutral,Neutral,success,en,14,2026-09-21T06:00:00Z
+CMT_00405,POST_0091,youtube,👀,Insufficient_Context,Neutral,insufficient_context,en,3,2026-10-29T06:00:00Z
+CMT_00406,POST_0050,instagram,Shared this with my university research group.,Neutral,Positive,success,en,18,2026-10-13T06:00:00Z
+CMT_00407,POST_0064,instagram,This is me pretending to have my life together at family dinners.,Relatable,Negative,success,en,3,2026-11-01T12:00:00Z
+CMT_00408,POST_0017,instagram,"Story of my life right now, can't even focus for 10 minutes.",Relatable,Negative,success,en,0,2026-10-03T00:00:00Z
+CMT_00409,POST_0112,youtube,"Great thumbnail, really caught my attention.",Neutral,Positive,success,en,18,2026-09-07T06:00:00Z
+CMT_00410,POST_0013,instagram,Thanks captain obvious for this revelation.,Neutral,Negative,success,en,0,2026-10-04T12:00:00Z
+CMT_00411,POST_0002,instagram,ok,Insufficient_Context,Neutral,insufficient_context,en,3,2026-10-17T00:00:00Z
+CMT_00412,POST_0053,instagram,Why does my brain always sabotage me like this?,Relatable,Negative,success,en,23,2026-10-26T12:00:00Z
+CMT_00413,POST_0010,instagram,"I wake up at 5am, make coffee, and stare at the wall in existential dread.",Relatable,Negative,success,en,24,2026-10-01T00:00:00Z
+CMT_00414,POST_0044,instagram,What audio interface are you running?,Neutral,Neutral,success,en,6,2026-10-10T18:00:00Z
+CMT_00415,POST_0084,instagram,"Solid educational breakdown, thank you for sharing.",Neutral,Positive,success,en,7,2026-09-06T00:00:00Z
+CMT_00416,POST_0110,youtube,"Great thumbnail, really caught my attention.",Neutral,Positive,success,en,4,2026-10-14T00:00:00Z
+CMT_00417,POST_0041,instagram,Shared this with my university research group.,Neutral,Positive,success,en,2,2026-10-11T00:00:00Z
+CMT_00418,POST_0112,youtube,bhai ye toh meri hi kahani hai bilkul sach bola aapne,Relatable,Positive,unsupported_language,non-en,3,2026-10-05T12:00:00Z
+CMT_00419,POST_0080,instagram,"Story of my life right now, can't even focus for 10 minutes.",Relatable,Negative,success,en,8,2026-09-05T06:00:00Z
+CMT_00420,POST_0081,instagram,Could you share the color grading LUT for this?,Neutral,Neutral,success,en,11,2026-10-14T18:00:00Z
+CMT_00421,POST_0030,instagram,"Nice visuals, loved the cinematic transitions.",Neutral,Positive,success,en,12,2026-10-18T18:00:00Z
+CMT_00422,POST_0056,instagram,The way my heart dropped because of how accurate this is.,Relatable,Negative,success,en,12,2026-11-02T12:00:00Z
+CMT_00423,POST_0098,youtube,I am in this video and I don't like it haha.,Relatable,Neutral,success,en,0,2026-10-11T12:00:00Z
+CMT_00424,POST_0057,instagram,I am in this video and I don't like it haha.,Relatable,Neutral,success,en,5,2026-09-11T12:00:00Z
+CMT_00425,POST_0116,youtube,Good job on the animation breakdown.,Neutral,Positive,success,en,0,2026-09-02T18:00:00Z
+CMT_00426,POST_0042,instagram,My anxiety has been telling me this all week.,Relatable,Negative,success,en,6,2026-10-21T18:00:00Z
+CMT_00427,POST_0038,instagram,Hits way too close to home.,Relatable,Neutral,success,en,4,2026-09-23T18:00:00Z
+CMT_00428,POST_0056,instagram,This explains the concept much better than my textbook.,Neutral,Positive,success,en,17,2026-09-10T06:00:00Z
+CMT_00429,POST_0068,instagram,Where did you buy that desk lamp?,Neutral,Neutral,success,en,3,2026-09-27T06:00:00Z
+CMT_00430,POST_0022,instagram,"So true, I literally cancel plans just to sit in silence.",Relatable,Neutral,success,en,0,2026-09-12T00:00:00Z
+CMT_00431,POST_0079,instagram,Stop describing my daily routine please lol.,Relatable,Positive,success,en,1,2026-10-26T12:00:00Z
+CMT_00432,POST_0080,instagram,Shared this with my university research group.,Neutral,Positive,success,en,11,2026-10-14T12:00:00Z
+CMT_00433,POST_0064,instagram,What font did you use for the animated title text?,Neutral,Neutral,success,en,7,2026-10-29T06:00:00Z
+CMT_00434,POST_0030,instagram,Why does my brain always sabotage me like this?,Relatable,Negative,success,en,0,2026-09-30T12:00:00Z
+CMT_00435,POST_0059,instagram,Can you drop the link to your studio setup?,Neutral,Neutral,success,en,0,2026-09-17T06:00:00Z
+CMT_00436,POST_0116,youtube,Exactly what I am experiencing right now with my job.,Relatable,Negative,success,en,9,2026-10-22T06:00:00Z
+CMT_00437,POST_0116,youtube,???,Insufficient_Context,Neutral,insufficient_context,en,0,2026-09-19T06:00:00Z
+CMT_00438,POST_0010,instagram,I have 50 tabs open right now and can't complete one sentence.,Relatable,Negative,success,en,13,2026-09-29T06:00:00Z
+CMT_00439,POST_0076,instagram,This was very informative and clearly articulated.,Neutral,Positive,success,en,9,2026-09-20T00:00:00Z
+CMT_00440,POST_0089,youtube,I disagree with your methodology in this experiment.,Neutral,Negative,success,en,0,2026-09-17T00:00:00Z
+CMT_00441,POST_0109,youtube,ok,Insufficient_Context,Neutral,insufficient_context,en,0,2026-09-20T06:00:00Z
+CMT_00442,POST_0050,instagram,This is the most relatable thing I have seen all month.,Relatable,Positive,success,en,34,2026-10-25T12:00:00Z
+CMT_00443,POST_0014,instagram,Das kenne ich zu gut aus eigener beruflicher Erfahrung.,Relatable,Neutral,unsupported_language,non-en,3,2026-09-16T00:00:00Z
+CMT_00444,POST_0074,instagram,Shared this with my university research group.,Neutral,Positive,success,en,3,2026-09-23T18:00:00Z
+CMT_00445,POST_0090,youtube,"Really well-crafted video, good pacing throughout.",Neutral,Positive,success,en,13,2026-09-19T18:00:00Z
+CMT_00446,POST_0107,youtube,Never felt so understood by an Instagram post.,Relatable,Positive,success,en,23,2026-10-13T00:00:00Z
+CMT_00447,POST_0036,instagram,"Solid educational breakdown, thank you for sharing.",Neutral,Positive,success,en,34,2026-09-01T12:00:00Z
+CMT_00448,POST_0117,youtube,I always overthink every email I send to my manager.,Relatable,Negative,success,en,11,2026-10-09T18:00:00Z
+CMT_00449,POST_0107,youtube,que buena camara usas para grabar esto,Neutral,Positive,unsupported_language,non-en,3,2026-10-28T18:00:00Z
+CMT_00450,POST_0100,youtube,"Nice visuals, loved the cinematic transitions.",Neutral,Positive,success,en,0,2026-10-22T00:00:00Z
+CMT_00451,POST_0078,instagram,Which microphone is that on your desk?,Neutral,Neutral,success,en,12,2026-10-22T06:00:00Z
+CMT_00452,POST_0029,instagram,The audio was slightly quiet in the opening chapter.,Neutral,Negative,success,en,6,2026-10-11T12:00:00Z
+CMT_00453,POST_0080,instagram,My bank account and I felt this deeply.,Relatable,Negative,success,en,4,2026-09-17T00:00:00Z
+CMT_00454,POST_0081,instagram,Going through this exact dilemma right now.,Relatable,Neutral,success,en,18,2026-09-07T00:00:00Z
+CMT_00455,POST_0040,instagram,Living this exact nightmare at my workplace right now.,Relatable,Negative,success,en,0,2026-10-21T06:00:00Z
+CMT_00456,POST_0005,instagram,Thanks captain obvious for this revelation.,Neutral,Negative,success,en,5,2026-10-08T00:00:00Z
+CMT_00457,POST_0094,youtube,I think you should cover time management tools in part 2.,Neutral,Neutral,success,en,0,2026-09-09T06:00:00Z
+CMT_00458,POST_0117,youtube,The way my heart dropped because of how accurate this is.,Relatable,Negative,success,en,5,2026-09-19T18:00:00Z
+CMT_00459,POST_0096,youtube,Love the aesthetic of your studio workspace.,Neutral,Positive,success,en,0,2026-09-27T12:00:00Z
+CMT_00460,POST_0026,instagram,This is 100% me during every exam week.,Relatable,Neutral,success,en,1,2026-09-09T06:00:00Z
+CMT_00461,POST_0068,instagram,I think you should cover time management tools in part 2.,Neutral,Neutral,success,en,1,2026-10-03T00:00:00Z
+CMT_00462,POST_0107,youtube,Where can I find the background music track?,Neutral,Neutral,success,en,8,2026-09-11T12:00:00Z
+CMT_00463,POST_0117,youtube,Can you drop the link to your studio setup?,Neutral,Neutral,success,en,10,2026-10-23T18:00:00Z
+CMT_00464,POST_0104,youtube,Das kenne ich zu gut aus eigener beruflicher Erfahrung.,Relatable,Neutral,unsupported_language,non-en,7,2026-09-19T18:00:00Z
+CMT_00465,POST_0103,youtube,Not sure I agree with your second argument.,Neutral,Negative,success,en,26,2026-09-08T06:00:00Z
+CMT_00466,POST_0010,instagram,???,Insufficient_Context,Neutral,insufficient_context,en,3,2026-09-10T00:00:00Z
+CMT_00467,POST_0111,youtube,What editing software was used for this transition?,Neutral,Neutral,success,en,2,2026-10-14T06:00:00Z
+CMT_00468,POST_0109,youtube,"Solid educational breakdown, thank you for sharing.",Neutral,Positive,success,en,16,2026-10-22T06:00:00Z
+CMT_00469,POST_0012,instagram,I think you should cover time management tools in part 2.,Neutral,Neutral,success,en,2,2026-10-21T12:00:00Z
+CMT_00470,POST_0002,instagram,"Solid educational breakdown, thank you for sharing.",Neutral,Positive,success,en,26,2026-09-17T18:00:00Z
+CMT_00471,POST_0059,instagram,"I feel so seen right now, definitely sharing with my partner.",Relatable,Positive,success,en,0,2026-09-24T12:00:00Z
+CMT_00472,POST_0075,instagram,What audio interface are you running?,Neutral,Neutral,success,en,28,2026-09-25T06:00:00Z
+CMT_00473,POST_0014,instagram,This explains the concept much better than my textbook.,Neutral,Positive,success,en,0,2026-10-14T00:00:00Z
+CMT_00474,POST_0061,instagram,What song is playing in the background?,Neutral,Neutral,success,en,17,2026-09-02T12:00:00Z
+CMT_00475,POST_0118,youtube,Love the aesthetic of your studio workspace.,Neutral,Positive,success,en,6,2026-10-10T00:00:00Z
+CMT_00476,POST_0083,instagram,What camera did you use to film this video?,Neutral,Neutral,success,en,39,2026-09-05T00:00:00Z
+CMT_00477,POST_0117,youtube,👍🔥,Insufficient_Context,Positive,insufficient_context,en,0,2026-10-15T18:00:00Z
+CMT_00478,POST_0084,instagram,"Awesome editing, what a visual treat!",Neutral,Positive,success,en,6,2026-09-27T00:00:00Z
+CMT_00479,POST_0018,instagram,Bro is narrating my 20s better than my therapist.,Relatable,Positive,success,en,27,2026-09-03T18:00:00Z
+CMT_00480,POST_0039,instagram,"Story of my life right now, can't even focus for 10 minutes.",Relatable,Negative,success,en,5,2026-10-02T12:00:00Z
+CMT_00481,POST_0013,instagram,Bro is narrating my 20s better than my therapist.,Relatable,Positive,success,en,7,2026-09-16T00:00:00Z
+CMT_00482,POST_0050,instagram,I do the exact same thing whenever someone gives me a compliment.,Relatable,Neutral,success,en,9,2026-09-30T00:00:00Z
+CMT_00483,POST_0086,youtube,"Interesting theory, but peer-reviewed evidence is mixed.",Neutral,Neutral,success,en,4,2026-10-31T18:00:00Z
+CMT_00484,POST_0076,instagram,I am a software engineer and I don't use this stack.,Neutral,Neutral,success,en,7,2026-10-18T12:00:00Z
+CMT_00485,POST_0114,youtube,"I wake up at 5am, make coffee, and stare at the wall in existential dread.",Relatable,Negative,success,en,7,2026-09-27T12:00:00Z
+CMT_00486,POST_0107,youtube,I am in this video and I don't like it haha.,Relatable,Neutral,success,en,18,2026-10-02T06:00:00Z
+CMT_00487,POST_0036,instagram,I prefer the previous editing style you had.,Neutral,Neutral,success,en,0,2026-09-03T00:00:00Z
+CMT_00488,POST_0028,instagram,"Interesting theory, but peer-reviewed evidence is mixed.",Neutral,Neutral,success,en,2,2026-09-29T06:00:00Z
+CMT_00489,POST_0031,instagram,Another generic productivity guru giving generic advice.,Neutral,Negative,success,en,24,2026-10-25T12:00:00Z
+CMT_00490,POST_0013,instagram,Good overview of the topic for beginners.,Neutral,Positive,success,en,17,2026-11-02T18:00:00Z
+CMT_00491,POST_0070,instagram,"Interesting theory, but peer-reviewed evidence is mixed.",Neutral,Neutral,success,en,4,2026-10-28T12:00:00Z
+CMT_00492,POST_0008,instagram,Could you provide citations or data sources for these claims?,Neutral,Neutral,success,en,7,2026-09-26T06:00:00Z
+CMT_00493,POST_0025,instagram,"Great video, keep up the awesome content!",Neutral,Positive,success,en,2,2026-11-01T18:00:00Z
+CMT_00494,POST_0109,youtube,"I feel so seen right now, definitely sharing with my partner.",Relatable,Positive,success,en,1,2026-10-23T12:00:00Z
+CMT_00495,POST_0012,instagram,ok,Insufficient_Context,Neutral,insufficient_context,en,4,2026-10-13T06:00:00Z
+CMT_00496,POST_0083,instagram,The procrastination loop you described is my entire semester.,Relatable,Negative,success,en,3,2026-10-11T18:00:00Z
+CMT_00497,POST_0007,instagram,Never felt so understood by an Instagram post.,Relatable,Positive,success,en,7,2026-10-21T06:00:00Z
+CMT_00498,POST_0032,instagram,Wonderful production value on this project.,Neutral,Positive,success,en,0,2026-09-09T00:00:00Z
+CMT_00499,POST_0009,instagram,I can't even count how many times this has happened to me.,Relatable,Negative,success,en,29,2026-10-24T00:00:00Z
+CMT_00500,POST_0076,instagram,I felt so guilty about doing this until I saw your post.,Relatable,Positive,success,en,34,2026-09-14T18:00:00Z

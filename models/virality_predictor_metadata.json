@@ -1,0 +1,58 @@
+{
+  "model_type": "ridge",
+  "trained_at": "2026-11-10T02:38:41.260492+00:00",
+  "dataset_provenance": "synthetic_illustrative_benchmark",
+  "provenance_statement": "Synthetic benchmark dataset generated for architectural pipeline demonstration. Evaluation demonstrates pipeline mechanics and statistical separation, not empirical real-world validation.",
+  "target_observation_window": "Settled snapshot engagement after at least 7 days since publication. Filtered out immature posts under 7 days of observation.",
+  "total_mature_posts": 112,
+  "train_samples_count": 89,
+  "test_samples_count": 23,
+  "train_date_range": [
+    "2026-09-01 20:00:00+00:00",
+    "2026-10-15 20:00:00+00:00"
+  ],
+  "test_date_range": [
+    "2026-10-16 09:00:00+00:00",
+    "2026-10-27 18:00:00+00:00"
+  ],
+  "baseline_metrics": {
+    "mae": 39.97,
+    "rmse": 46.12,
+    "r2": -0.418
+  },
+  "candidate_metrics": {
+    "mae": 22.59,
+    "rmse": 32.84,
+    "r2": 0.281,
+    "spearman_rho": 0.616,
+    "spearman_pvalue": 0.0018
+  },
+  "mae_lift_pct": 43.5,
+  "rmse_lift_pct": 28.8,
+  "beats_baseline": true,
+  "empirical_residual_q95": 50.16,
+  "top_features": {
+    "topic_Imposter Syndrome": 31.894,
+    "topic_Social Anxiety": 28.06,
+    "topic_Academic Stress": -26.613,
+    "topic_Dating & Rejection": -24.226,
+    "follower_count": -18.969,
+    "topic_Procrastination Loop": -16.455,
+    "topic_Career Burnout": 13.833,
+    "posting_day_of_week_Sunday": -13.309,
+    "posting_day_of_week_Saturday": 12.311,
+    "platform_instagram": -9.8
+  },
+  "historical_scores_reference": {
+    "mean": 87.3,
+    "std": 44.22,
+    "p25": 49.36,
+    "p50": 78.44,
+    "p75": 120.07
+  },
+  "methodological_limitations": {
+    "selection_optimism_risk": "Model selection (choosing Ridge over tree ensembles) was conducted on the same held-out test split. For streaming real-world data, rolling-origin cross-validation (walk-forward evaluation) is recommended.",
+    "prediction_interval_validity": "Reported intervals represent approximate empirical residual dispersion bands (+/- q95 or +/- 1.96*RMSE). They are not guaranteed conformal prediction intervals with formal finite-sample coverage guarantees.",
+    "sample_size": "N=112 mature posts. Indicative prototype only."
+  }
+}
