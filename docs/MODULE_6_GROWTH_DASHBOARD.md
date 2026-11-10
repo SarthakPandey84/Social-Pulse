@@ -1,9 +1,9 @@
 # Module 6: Growth Visualization Dashboard Documentation
 
 **Product:** *SocialPulse — An Intelligent Social Media Analytics & Engagement Optimization Platform*  
-*(Unlox Data-Driven Social Engagement Initiative)*  
+*(Multi-Platform Social Engagement Analytics Suite)*\
 **Module:** 6 — Growth Visualization Dashboard  
-**Status:** Audited, Methodologically Verified, and Phase A Hardened (22/22 Module 6 Tests Passing; 196/196 Total Repository Tests Passing)
+**Status:** Audited, Methodologically Verified, and Hardened (26/26 Module 6 Tests Passing; 273/273 Total Repository Tests Passing)
 
 ---
 
@@ -25,8 +25,8 @@ Crucially, the dashboard is built with strict statistical and causal guardrails:
 ```mermaid
 flowchart TD
     subgraph Data Sources & Processed Fixtures
-        M1_DATA[(processed_posts.parquet<br/>120 unique posts)]
-        M3_DATA[(processed_comments.parquet<br/>500 comments)]
+        M1_DATA[(processed_posts.parquet<br/>121 snapshots, 120 unique posts)]
+        M3_DATA[(processed_comments.parquet<br/>500 comments across 119 posts)]
         M4_DATA[(sample_experiments.csv &<br/>processed_ab_tests.parquet)]
     end
 
@@ -74,12 +74,12 @@ flowchart TD
 
 | Section / Capability | Source Module | Input Dataset / API | Key Fields Used | Mathematical Definition / Methodology | Limitations & Caveats |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Section A: Growth Overview** | Module 1 | `data/processed/processed_posts.parquet` | `views`, `impressions`, `reach`, `likes`, `comments_count`, `shares`, `saves`, `new_followers` | Deduplicated to latest post snapshots via `get_latest_posts_view()`. Distinguishes Pooled Views Rate ($\frac{\sum \text{Interactions}}{\sum \text{Views}} \times 100\%$) from Arithmetic Mean of Post Rates ($\frac{1}{N}\sum \frac{\text{Interactions}_i}{\text{Views}_i} \times 100\%$). | YouTube lacks saves and reach; reach-based rate is computed only across posts where $\text{reach} > 0$. |
+| **Section A: Growth Overview** | Module 1 | `data/processed/processed_posts.parquet` | `views`, `impressions`, `reach`, `likes`, `comments_count`, `shares`, `saves`, `new_followers` | Deduplicated from `121` raw snapshot rows to `120` latest unique posts via `get_latest_posts_view()`. Distinguishes Pooled Views Rate ($\frac{\sum \text{Interactions}}{\sum \text{Views}} \times 100\%$) from Arithmetic Mean of Post Rates ($\frac{1}{N}\sum \frac{\text{Interactions}_i}{\text{Views}_i} \times 100\%$). | YouTube lacks saves and reach; reach-based rate is computed only across posts where $\text{reach} > 0$. |
 | **Period Comparison** | Module 6 Backend | `processed_posts.parquet` | `timestamp_dt` | Evaluates equal-duration comparison windows ($D$ calendar days); handles missing posting dates and zero-activity prior periods without division by zero. Requires $\ge 5$ posts per period. | Incomplete periods are rejected and never presented as equivalent. |
 | **Section B: Trends Over Time** | Module 1 | `processed_posts.parquet` | `timestamp_dt`, `views`, `likes`, `shares`, `saves` | Resampled by Daily (`D`), Weekly (`W`), or Monthly (`ME`). Continuous rates use `NaN` rather than false `0.0` for intervals with `0` views. | Aggregation reflects publication timestamp, not cumulative daily view drift. |
 | **Section C: Platform Comparison** | Module 1 | `processed_posts.parquet` | `platform`, `content_type`, `views`, `shares`, `saves` | Normalized Rate = $\frac{\text{Likes} + \text{Comments} + \text{Shares}}{\text{Views}} \times 100\%$. Full Rate adds Saves. Explicit non-equivalence disclosures warn that mathematical alignment does NOT imply behavioral equivalence. | Cross-platform rankings use Normalized Rate to prevent penalizing YouTube for lack of save tracking. Discloses distinct interaction fields and denominators per platform. |
 | **Section D: Content Breakdowns** | Module 1 & 2 | `processed_posts.parquet` | `topic`, `content_type`, `duration_seconds`, `hook_type`, `posting_hour` | Grouped means and sample size annotations ($N$). Hourly vs. Day-of-Week heatmap matrix of mean views. Safe bubble chart clipping avoids `NaN` marker errors. | Observational associations; confounding variables prevent causal interpretation. |
-| **Section E: Audience Insights** | Module 3 | `data/processed/processed_comments.parquet` | `sentiment_label`, `relatability_label`, `post_id` | Donut distributions of sentiment and relatability. Post-level merge for Spearman correlation with saves ($\rho = 0.0044, p = 0.972$). Exact disclaimer avoids causal overreach. | Rule-based heuristics and TF-IDF classifiers trained on synthetic benchmark fixtures; not verified human ground truth. Does not establish equivalence or prove absence of effect. |
+| **Section E: Audience Insights** | Module 3 | `data/processed/processed_comments.parquet` | `sentiment_label`, `relatability_label`, `post_id` | Donut distributions of sentiment and relatability (`500` comments across `119` unique `post_id`s). Inner-joined against the `120` deduplicated latest posts (`119` matched posts; $< 120$ due to `1` post without comments), then filtered to non-null `saves` (`N = 64` Instagram posts) for Spearman rank correlation ($\rho = -0.0109, p = 0.932$). Exact disclaimer avoids causal overreach. | Rule-based heuristics and TF-IDF classifiers trained on synthetic benchmark fixtures; not verified human ground truth. Does not establish equivalence or prove absence of effect. |
 | **Section F: A/B Experiments** | Module 4 | `sample_experiments.csv` & `processed_ab_tests.parquet` | `variant`, `share_rate`, `views`, `relatability_pct` | `ABTestingFramework.compare_continuous()`, `compare_post_level_rates()`, Holm-Bonferroni correction, Forest Plot of effect sizes & 95% CIs. | Post-level aggregation addresses exposure dependence within posts, but does not correct across-post creator/campaign clustering. |
 | **Section G: Strategy Optimization** | Module 5 | `OptimizationRecommender` | Integrated Modules 1–4 signals | 7-component deterministic Priority Score formula with conflict penalties and confidence hierarchy (`HIGH`, `MEDIUM`, `LOW`/`EXPLORATORY`). | Deterministic ranking index only; does NOT represent a calibrated probability of virality or success. |
 
@@ -101,21 +101,22 @@ flowchart TD
 
 ---
 
-## 5. Global Filtering & Interactivity
+## 5. Global Filtering & Multi-Corpus Support
 
-The dashboard includes a dedicated sidebar with synchronized multi-dimensional filters:
-- **Date Range Picker:** Constrained by the dataset boundaries (2026-09-01 to 2026-10-31).
-- **Platform Selector:** Filter to `All Platforms`, `Instagram`, or `YouTube`.
-- **Content Format Selector:** Filter to `All Formats`, `Reel`, `Carousel`, or `Short Video`.
-- **Struggle Topic Selector:** Filter to `All Topics` or specific topics (e.g. `Social Anxiety`, `Career Burnout`).
+The dashboard includes a dedicated sidebar supporting both offline synthetic benchmark fixtures (`synthetic_demo`) and prepared external corpora in `data/processed/external/` (via `sp_dataset_selector_p6` with fail-loud loading and dynamic provenance banners):
+- **Dataset Corpus Selector:** Switch deterministically across `synthetic_demo`, TikTok (`tiktok_engagement_200k` — preserving `collect_count` as an explicit bookmark proxy), Instagram real/benchmark corpora (`instaart_human_ai`, `zenodo_sponsored_unsponsored_ig`, `zenodo_educational_reels_ig`, `instagram_engagement_eda_hf`, `instagram_analytics_github_alt`), with zero silent fallback on missing or corrupt files.
+- **Date Range Picker:** Constrained automatically to observed corpus timestamps; gracefully disabled with an explanatory caption for static/cross-sectional corpora lacking timestamps (`zenodo_sponsored_unsponsored_ig`).
+- **Platform Selector:** Dynamically lists active platforms in the corpus (`Instagram`, `YouTube`, `TikTok`).
+- **Content Format Selector:** Dynamically lists observed content formats.
+- **Struggle Topic Selector:** Dynamically lists curated topics (`All Topics` default; hidden/N/A when absent).
 - **Reset Button:** Instantly restores all filter defaults.
-- **Empty State Safeguards:** If an overly narrow filter combination yields 0 matching posts, a clear warning is displayed, preventing division-by-zero crashes or distorted empty plots.
+- **Scale & Empty State Safeguards:** Unobserved metrics render as `N/A` via `metric_availability` rather than zero-imputation (including Reach Eng. Rate gated strictly on `avail.get("reach", False)`); `[0, 1]` fractional `retention_rate` values scale consistently to `0–100%` across breakdowns and comparisons; Spearman audience correlations return `None` when non-null `saves` samples `< 10` (`N<10` or absent `saves`) and surface non-synthetic dataset wording for public/external corpora; Section D scatter plots deterministically cap visual traces at `5,000` points (`random_state=42`) while KPIs compute over the complete corpus.
 
 ---
 
 ## 6. Testing & Quality Assurance
 
-The module is verified by a dedicated 22-test automated regression suite in `tests/test_module6_dashboard.py`:
+The module is verified by a dedicated 26-test automated regression suite in `tests/test_module6_dashboard.py`:
 
 ```text
 tests/test_module6_dashboard.py::test_data_loading_from_all_modules PASSED
@@ -134,20 +135,25 @@ tests/test_module6_dashboard.py::test_recommendation_integration_module5 PASSED
 tests/test_module6_dashboard.py::test_consistency_between_kpi_and_chart_data PASSED
 tests/test_module6_dashboard.py::test_regression_compatibility_modules_1_to_5 PASSED
 tests/test_module6_dashboard.py::test_relatability_interpretation_disclaimer PASSED
+tests/test_module6_dashboard.py::test_audience_insights_deduplicates_post_snapshots PASSED
 tests/test_module6_dashboard.py::test_pooled_vs_arithmetic_mean_engagement_rates PASSED
 tests/test_module6_dashboard.py::test_period_comparison_equal_duration_and_incomplete_detection PASSED
 tests/test_module6_dashboard.py::test_period_comparison_zero_activity_in_previous_period PASSED
 tests/test_module6_dashboard.py::test_cross_platform_disclosures_and_non_equivalence PASSED
 tests/test_module6_dashboard.py::test_zero_denominators_safety PASSED
 tests/test_module6_dashboard.py::test_missing_saves_handling PASSED
+tests/test_module6_dashboard.py::test_scalar_kpis_distinguish_genuine_zero_unavailable_and_mixed PASSED
+tests/test_module6_dashboard.py::test_content_breakdowns_preserve_na_never_zero_impute PASSED
+tests/test_module6_dashboard.py::test_content_breakdowns_absent_columns_and_genuine_zeros PASSED
 ```
 
-**Full Repository Regression Suite:** **196 passed across Modules 1–7, UI shell/security, NLP/metadata hardening, and artifact build verification.**
+**Full Repository Regression Suite:** **273 passed across Modules 1–7, external adapters/quality pipeline, PDF compliance & governance hardening, vectorization parity, UI shell/security/multi-dataset switching, shared caching/startup bootstrap, NLP/metadata hardening, and artifact build verification.**
 
 ---
 
 ## 7. Runtime & Visual Verification History
 
-* **Backend Analytical & UI Smoke Verification:** Verified continuously via `tests/test_module6_dashboard.py` (22/22) and Streamlit `AppTest` checks in `tests/test_phase4_ui.py` using the active multi-page entrypoint (`streamlit run streamlit_app.py`).
+* **Canonical Dashboard Route:** `app/pages/06_Growth_Dashboard.py` is the sole canonical Growth Dashboard page.
+* **Backend Analytical & UI Smoke Verification:** Verified continuously via `tests/test_module6_dashboard.py` (26/26) and Streamlit `AppTest` checks in `tests/test_phase4_ui.py` using the active multi-page entrypoint (`streamlit run streamlit_app.py`), including deterministic signature-keyed caching for dashboard experiment and recommendation synthesis (`app/components/data_loader.py`).
 * **UI Modernization & Responsive Chart Layouts:** Visually verified across Desktop (`1440×900`), Laptop (`1366×768`), Tablet (`768×1024`), and Mobile (`390×844`) viewports during Phases 4, 4.1, and 4.2 without label/title clipping or runtime exceptions.
 * **Repository Cleanup Note:** Superseded pre-Phase 4 CDP runtime screenshot captures formerly stored under `reports/figures/module6_runtime/` were pruned during the Phase 5B repository cleanup to keep the release workspace lean and avoid outdated visual documentation.

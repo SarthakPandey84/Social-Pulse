@@ -1,0 +1,1326 @@
+{
+  "processed_external_root": "data/processed/external",
+  "benchmark_reproducibility": {
+    "artifact_type": "deterministic_real_data_benchmark",
+    "intentionally_variable_fields_excluded": [
+      "generated_at_utc"
+    ],
+    "runtime_provenance_location": "models/build_provenance.json"
+  },
+  "modules": {
+    "module1": {
+      "tiktok_metric_availability": {
+        "row_count": 209543,
+        "platforms": [
+          "tiktok"
+        ],
+        "provenances": [
+          "real_public_data"
+        ],
+        "metrics": {
+          "views": {
+            "present_in_schema": true,
+            "observed_count": 209543,
+            "observed_pct": 100.0
+          },
+          "impressions": {
+            "present_in_schema": true,
+            "observed_count": 0,
+            "observed_pct": 0.0
+          },
+          "reach": {
+            "present_in_schema": true,
+            "observed_count": 0,
+            "observed_pct": 0.0
+          },
+          "likes": {
+            "present_in_schema": true,
+            "observed_count": 209543,
+            "observed_pct": 100.0
+          },
+          "comments_count": {
+            "present_in_schema": true,
+            "observed_count": 209543,
+            "observed_pct": 100.0
+          },
+          "shares": {
+            "present_in_schema": true,
+            "observed_count": 209543,
+            "observed_pct": 100.0
+          },
+          "saves": {
+            "present_in_schema": true,
+            "observed_count": 0,
+            "observed_pct": 0.0
+          },
+          "follower_count": {
+            "present_in_schema": true,
+            "observed_count": 206399,
+            "observed_pct": 98.5
+          },
+          "retention_rate": {
+            "present_in_schema": true,
+            "observed_count": 0,
+            "observed_pct": 0.0
+          },
+          "collect_count": {
+            "present_in_schema": true,
+            "observed_count": 209543,
+            "observed_pct": 100.0
+          }
+        },
+        "proxy_disclosures": {
+          "collect_count": "TikTok video favorite/collect counter (`collect_count`). Distinct from Instagram Insights `saves`; retained as an explicit proxy metric and never silently pooled with Instagram saves."
+        }
+      },
+      "tiktok_creator_relative_views": {
+        "rows_evaluated": 209543,
+        "eligible_creators_min_5_posts": 1872,
+        "median_relative_ratio": 1.0,
+        "p90_relative_ratio": 3.158
+      },
+      "sponsored_ig_metric_availability": {
+        "row_count": 58204,
+        "platforms": [
+          "instagram"
+        ],
+        "provenances": [
+          "real_public_data"
+        ],
+        "metrics": {
+          "views": {
+            "present_in_schema": true,
+            "observed_count": 0,
+            "observed_pct": 0.0
+          },
+          "impressions": {
+            "present_in_schema": false,
+            "observed_count": 0,
+            "observed_pct": 0.0
+          },
+          "reach": {
+            "present_in_schema": false,
+            "observed_count": 0,
+            "observed_pct": 0.0
+          },
+          "likes": {
+            "present_in_schema": true,
+            "observed_count": 58204,
+            "observed_pct": 100.0
+          },
+          "comments_count": {
+            "present_in_schema": true,
+            "observed_count": 58204,
+            "observed_pct": 100.0
+          },
+          "shares": {
+            "present_in_schema": true,
+            "observed_count": 0,
+            "observed_pct": 0.0
+          },
+          "saves": {
+            "present_in_schema": true,
+            "observed_count": 0,
+            "observed_pct": 0.0
+          },
+          "follower_count": {
+            "present_in_schema": true,
+            "observed_count": 57840,
+            "observed_pct": 99.37
+          },
+          "retention_rate": {
+            "present_in_schema": false,
+            "observed_count": 0,
+            "observed_pct": 0.0
+          },
+          "collect_count": {
+            "present_in_schema": false,
+            "observed_count": 0,
+            "observed_pct": 0.0
+          }
+        },
+        "proxy_disclosures": {}
+      }
+    },
+    "module2": {
+      "day30_pre_pub_chronological": {
+        "dataset_id": "tiktok_engagement_200k",
+        "provenance": "real_public_data",
+        "platform": "tiktok",
+        "target_column": "day30_views",
+        "target_transform": "log1p",
+        "feature_regime": "pre_pub",
+        "split_strategy": "chronological",
+        "features_used": [
+          "topic",
+          "posting_day_of_week",
+          "duration_seconds",
+          "posting_hour",
+          "word_count",
+          "emoji_count",
+          "question_count",
+          "hashtag_count",
+          "speaking_rate",
+          "is_english",
+          "created_by_ai",
+          "follower_count_log1p",
+          "creator_video_count_log1p",
+          "creator_total_favorited_log1p"
+        ],
+        "total_evaluated_rows": 73940,
+        "train_rows": 59152,
+        "test_rows": 14788,
+        "unique_creators": 1846,
+        "creator_overlap_count": 1526,
+        "calibration_strategy": "chronological",
+        "calibration_available": true,
+        "calibration_fit_rows": 50279,
+        "calibration_rows": 8873,
+        "calibration_creator_overlap_count": 1401,
+        "calibration_note": "Chronological 85/15 fit/calibration split with strict timestamp boundary (fit_max=2024-09-20 18:23:13+00:00, cal_min=2024-09-20 18:23:15+00:00).",
+        "negative_delta_reset_rows_in_cohort": 14276,
+        "exclude_negative_reset_rows": false,
+        "train_date_range": [
+          "2024-06-24 10:08:17+00:00",
+          "2024-10-06 21:30:41+00:00"
+        ],
+        "test_date_range": [
+          "2024-10-06 21:31:23+00:00",
+          "2024-11-09 23:59:26+00:00"
+        ],
+        "models": {
+          "dummy_median": {
+            "mae_log1p": 1.4051,
+            "rmse_log1p": 2.1024,
+            "r2_log1p": -0.1627,
+            "spearman_rho": 0.0,
+            "median_abs_error_views": 399.0,
+            "empirical_q90_log1p_radius": 3.3237,
+            "empirical_90pct_test_coverage": 87.98
+          },
+          "ridge": {
+            "mae_log1p": 0.9408,
+            "rmse_log1p": 1.3117,
+            "r2_log1p": 0.5474,
+            "spearman_rho": 0.7514,
+            "median_abs_error_views": 599.4,
+            "empirical_q90_log1p_radius": 1.9371,
+            "empirical_90pct_test_coverage": 88.63
+          },
+          "hist_gradient_boosting": {
+            "mae_log1p": 0.8193,
+            "rmse_log1p": 1.1781,
+            "r2_log1p": 0.6349,
+            "spearman_rho": 0.7796,
+            "median_abs_error_views": 468.2,
+            "empirical_q90_log1p_radius": 1.7856,
+            "empirical_90pct_test_coverage": 89.57
+          }
+        },
+        "best_model": "hist_gradient_boosting",
+        "rmse_lift_over_dummy_pct": 43.96,
+        "limitations": [
+          "TikTok creator_total_favorited and follower_count reflect creator snapshot metadata and can correlate across videos from the same account.",
+          "Creator-grouped splits are substantially harder than random/within-creator splits because creator baseline scale is unseen.",
+          "Empirical 90% prediction bands are split-residual approximations without finite-sample conformal exchangeability guarantees under distribution shift."
+        ]
+      },
+      "day30_pre_pub_creator_grouped": {
+        "dataset_id": "tiktok_engagement_200k",
+        "provenance": "real_public_data",
+        "platform": "tiktok",
+        "target_column": "day30_views",
+        "target_transform": "log1p",
+        "feature_regime": "pre_pub",
+        "split_strategy": "creator_grouped",
+        "features_used": [
+          "topic",
+          "posting_day_of_week",
+          "duration_seconds",
+          "posting_hour",
+          "word_count",
+          "emoji_count",
+          "question_count",
+          "hashtag_count",
+          "speaking_rate",
+          "is_english",
+          "created_by_ai",
+          "follower_count_log1p",
+          "creator_video_count_log1p",
+          "creator_total_favorited_log1p"
+        ],
+        "total_evaluated_rows": 73940,
+        "train_rows": 60304,
+        "test_rows": 13636,
+        "unique_creators": 1846,
+        "creator_overlap_count": 0,
+        "calibration_strategy": "creator_grouped",
+        "calibration_available": true,
+        "calibration_fit_rows": 50597,
+        "calibration_rows": 9707,
+        "calibration_creator_overlap_count": 0,
+        "calibration_note": "Creator-grouped fit/calibration holdout via GroupShuffleSplit with zero creator overlap (1254 fit creators, 222 cal creators).",
+        "negative_delta_reset_rows_in_cohort": 14276,
+        "exclude_negative_reset_rows": false,
+        "train_date_range": [
+          "2024-06-24 10:08:17+00:00",
+          "2024-11-09 23:59:26+00:00"
+        ],
+        "test_date_range": [
+          "2024-06-24 17:04:03+00:00",
+          "2024-11-09 23:53:41+00:00"
+        ],
+        "models": {
+          "dummy_median": {
+            "mae_log1p": 1.3985,
+            "rmse_log1p": 2.0851,
+            "r2_log1p": -0.1189,
+            "spearman_rho": 0.0,
+            "median_abs_error_views": 406.0,
+            "empirical_q90_log1p_radius": 3.2236,
+            "empirical_90pct_test_coverage": 87.5
+          },
+          "ridge": {
+            "mae_log1p": 0.9405,
+            "rmse_log1p": 1.3025,
+            "r2_log1p": 0.5634,
+            "spearman_rho": 0.767,
+            "median_abs_error_views": 673.7,
+            "empirical_q90_log1p_radius": 2.0755,
+            "empirical_90pct_test_coverage": 91.53
+          },
+          "hist_gradient_boosting": {
+            "mae_log1p": 0.8761,
+            "rmse_log1p": 1.2474,
+            "r2_log1p": 0.5996,
+            "spearman_rho": 0.7838,
+            "median_abs_error_views": 518.1,
+            "empirical_q90_log1p_radius": 2.5899,
+            "empirical_90pct_test_coverage": 95.26
+          }
+        },
+        "best_model": "hist_gradient_boosting",
+        "rmse_lift_over_dummy_pct": 40.18,
+        "limitations": [
+          "TikTok creator_total_favorited and follower_count reflect creator snapshot metadata and can correlate across videos from the same account.",
+          "Creator-grouped splits are substantially harder than random/within-creator splits because creator baseline scale is unseen.",
+          "Empirical 90% prediction bands are split-residual approximations without finite-sample conformal exchangeability guarantees under distribution shift."
+        ]
+      },
+      "day30_early_day1_chronological": {
+        "dataset_id": "tiktok_engagement_200k",
+        "provenance": "real_public_data",
+        "platform": "tiktok",
+        "target_column": "day30_views",
+        "target_transform": "log1p",
+        "feature_regime": "early_day1",
+        "split_strategy": "chronological",
+        "features_used": [
+          "topic",
+          "posting_day_of_week",
+          "duration_seconds",
+          "posting_hour",
+          "word_count",
+          "emoji_count",
+          "question_count",
+          "hashtag_count",
+          "speaking_rate",
+          "is_english",
+          "created_by_ai",
+          "follower_count_log1p",
+          "creator_video_count_log1p",
+          "creator_total_favorited_log1p",
+          "day1_views_log1p",
+          "day1_likes_log1p",
+          "day1_comments_log1p",
+          "day1_shares_log1p",
+          "day1_collects_log1p"
+        ],
+        "total_evaluated_rows": 73940,
+        "train_rows": 59152,
+        "test_rows": 14788,
+        "unique_creators": 1846,
+        "creator_overlap_count": 1526,
+        "calibration_strategy": "chronological",
+        "calibration_available": true,
+        "calibration_fit_rows": 50279,
+        "calibration_rows": 8873,
+        "calibration_creator_overlap_count": 1401,
+        "calibration_note": "Chronological 85/15 fit/calibration split with strict timestamp boundary (fit_max=2024-09-20 18:23:13+00:00, cal_min=2024-09-20 18:23:15+00:00).",
+        "negative_delta_reset_rows_in_cohort": 14276,
+        "exclude_negative_reset_rows": false,
+        "train_date_range": [
+          "2024-06-24 10:08:17+00:00",
+          "2024-10-06 21:30:41+00:00"
+        ],
+        "test_date_range": [
+          "2024-10-06 21:31:23+00:00",
+          "2024-11-09 23:59:26+00:00"
+        ],
+        "models": {
+          "dummy_median": {
+            "mae_log1p": 1.4051,
+            "rmse_log1p": 2.1024,
+            "r2_log1p": -0.1627,
+            "spearman_rho": 0.0,
+            "median_abs_error_views": 399.0,
+            "empirical_q90_log1p_radius": 3.3237,
+            "empirical_90pct_test_coverage": 87.98
+          },
+          "ridge": {
+            "mae_log1p": 0.3722,
+            "rmse_log1p": 0.6555,
+            "r2_log1p": 0.887,
+            "spearman_rho": 0.9504,
+            "median_abs_error_views": 202.6,
+            "empirical_q90_log1p_radius": 0.6945,
+            "empirical_90pct_test_coverage": 89.63
+          },
+          "hist_gradient_boosting": {
+            "mae_log1p": 0.3305,
+            "rmse_log1p": 0.5679,
+            "r2_log1p": 0.9152,
+            "spearman_rho": 0.9601,
+            "median_abs_error_views": 162.0,
+            "empirical_q90_log1p_radius": 0.714,
+            "empirical_90pct_test_coverage": 90.79
+          }
+        },
+        "best_model": "hist_gradient_boosting",
+        "rmse_lift_over_dummy_pct": 72.99,
+        "limitations": [
+          "TikTok creator_total_favorited and follower_count reflect creator snapshot metadata and can correlate across videos from the same account.",
+          "Creator-grouped splits are substantially harder than random/within-creator splits because creator baseline scale is unseen.",
+          "Empirical 90% prediction bands are split-residual approximations without finite-sample conformal exchangeability guarantees under distribution shift."
+        ]
+      },
+      "day30_early_day1_creator_grouped": {
+        "dataset_id": "tiktok_engagement_200k",
+        "provenance": "real_public_data",
+        "platform": "tiktok",
+        "target_column": "day30_views",
+        "target_transform": "log1p",
+        "feature_regime": "early_day1",
+        "split_strategy": "creator_grouped",
+        "features_used": [
+          "topic",
+          "posting_day_of_week",
+          "duration_seconds",
+          "posting_hour",
+          "word_count",
+          "emoji_count",
+          "question_count",
+          "hashtag_count",
+          "speaking_rate",
+          "is_english",
+          "created_by_ai",
+          "follower_count_log1p",
+          "creator_video_count_log1p",
+          "creator_total_favorited_log1p",
+          "day1_views_log1p",
+          "day1_likes_log1p",
+          "day1_comments_log1p",
+          "day1_shares_log1p",
+          "day1_collects_log1p"
+        ],
+        "total_evaluated_rows": 73940,
+        "train_rows": 60304,
+        "test_rows": 13636,
+        "unique_creators": 1846,
+        "creator_overlap_count": 0,
+        "calibration_strategy": "creator_grouped",
+        "calibration_available": true,
+        "calibration_fit_rows": 50597,
+        "calibration_rows": 9707,
+        "calibration_creator_overlap_count": 0,
+        "calibration_note": "Creator-grouped fit/calibration holdout via GroupShuffleSplit with zero creator overlap (1254 fit creators, 222 cal creators).",
+        "negative_delta_reset_rows_in_cohort": 14276,
+        "exclude_negative_reset_rows": false,
+        "train_date_range": [
+          "2024-06-24 10:08:17+00:00",
+          "2024-11-09 23:59:26+00:00"
+        ],
+        "test_date_range": [
+          "2024-06-24 17:04:03+00:00",
+          "2024-11-09 23:53:41+00:00"
+        ],
+        "models": {
+          "dummy_median": {
+            "mae_log1p": 1.3985,
+            "rmse_log1p": 2.0851,
+            "r2_log1p": -0.1189,
+            "spearman_rho": 0.0,
+            "median_abs_error_views": 406.0,
+            "empirical_q90_log1p_radius": 3.2236,
+            "empirical_90pct_test_coverage": 87.5
+          },
+          "ridge": {
+            "mae_log1p": 0.3402,
+            "rmse_log1p": 0.5887,
+            "r2_log1p": 0.9108,
+            "spearman_rho": 0.9555,
+            "median_abs_error_views": 174.0,
+            "empirical_q90_log1p_radius": 0.6461,
+            "empirical_90pct_test_coverage": 90.09
+          },
+          "hist_gradient_boosting": {
+            "mae_log1p": 0.3089,
+            "rmse_log1p": 0.5488,
+            "r2_log1p": 0.9225,
+            "spearman_rho": 0.961,
+            "median_abs_error_views": 143.5,
+            "empirical_q90_log1p_radius": 0.7436,
+            "empirical_90pct_test_coverage": 92.58
+          }
+        },
+        "best_model": "hist_gradient_boosting",
+        "rmse_lift_over_dummy_pct": 73.68,
+        "limitations": [
+          "TikTok creator_total_favorited and follower_count reflect creator snapshot metadata and can correlate across videos from the same account.",
+          "Creator-grouped splits are substantially harder than random/within-creator splits because creator baseline scale is unseen.",
+          "Empirical 90% prediction bands are split-residual approximations without finite-sample conformal exchangeability guarantees under distribution shift."
+        ]
+      },
+      "day7_pre_pub_creator_grouped": {
+        "dataset_id": "tiktok_engagement_200k",
+        "provenance": "real_public_data",
+        "platform": "tiktok",
+        "target_column": "day7_views",
+        "target_transform": "log1p",
+        "feature_regime": "pre_pub",
+        "split_strategy": "creator_grouped",
+        "features_used": [
+          "topic",
+          "posting_day_of_week",
+          "duration_seconds",
+          "posting_hour",
+          "word_count",
+          "emoji_count",
+          "question_count",
+          "hashtag_count",
+          "speaking_rate",
+          "is_english",
+          "created_by_ai",
+          "follower_count_log1p",
+          "creator_video_count_log1p",
+          "creator_total_favorited_log1p"
+        ],
+        "total_evaluated_rows": 206216,
+        "train_rows": 160913,
+        "test_rows": 45303,
+        "unique_creators": 1872,
+        "creator_overlap_count": 0,
+        "calibration_strategy": "creator_grouped",
+        "calibration_available": true,
+        "calibration_fit_rows": 136837,
+        "calibration_rows": 24076,
+        "calibration_creator_overlap_count": 0,
+        "calibration_note": "Creator-grouped fit/calibration holdout via GroupShuffleSplit with zero creator overlap (1272 fit creators, 225 cal creators).",
+        "negative_delta_reset_rows_in_cohort": 38724,
+        "exclude_negative_reset_rows": false,
+        "train_date_range": [
+          "2024-06-24 00:02:47+00:00",
+          "2024-11-09 23:59:26+00:00"
+        ],
+        "test_date_range": [
+          "2024-06-24 00:04:33+00:00",
+          "2024-11-09 23:55:20+00:00"
+        ],
+        "models": {
+          "dummy_median": {
+            "mae_log1p": 1.3959,
+            "rmse_log1p": 2.1018,
+            "r2_log1p": -0.1241,
+            "spearman_rho": 0.0,
+            "median_abs_error_views": 320.0,
+            "empirical_q90_log1p_radius": 2.7646,
+            "empirical_90pct_test_coverage": 84.1
+          },
+          "ridge": {
+            "mae_log1p": 0.9827,
+            "rmse_log1p": 1.3432,
+            "r2_log1p": 0.5409,
+            "spearman_rho": 0.7494,
+            "median_abs_error_views": 508.0,
+            "empirical_q90_log1p_radius": 1.8085,
+            "empirical_90pct_test_coverage": 85.35
+          },
+          "hist_gradient_boosting": {
+            "mae_log1p": 0.9438,
+            "rmse_log1p": 1.3379,
+            "r2_log1p": 0.5446,
+            "spearman_rho": 0.742,
+            "median_abs_error_views": 421.4,
+            "empirical_q90_log1p_radius": 1.852,
+            "empirical_90pct_test_coverage": 85.06
+          }
+        },
+        "best_model": "hist_gradient_boosting",
+        "rmse_lift_over_dummy_pct": 36.35,
+        "limitations": [
+          "TikTok creator_total_favorited and follower_count reflect creator snapshot metadata and can correlate across videos from the same account.",
+          "Creator-grouped splits are substantially harder than random/within-creator splits because creator baseline scale is unseen.",
+          "Empirical 90% prediction bands are split-residual approximations without finite-sample conformal exchangeability guarantees under distribution shift."
+        ]
+      }
+    },
+    "module3": {
+      "instagram_sentiment_heldout": {
+        "dataset_id": "instagram_comments_sentiment_hf",
+        "provenance": "weakly_labelled_data",
+        "train_samples": 200,
+        "test_samples_full": 56,
+        "cross_split_duplicate_texts_in_test": 4,
+        "test_samples_strict_unique": 52,
+        "full_heldout_test": {
+          "n_samples": 56,
+          "tfidf_logreg": {
+            "accuracy": 0.5536,
+            "macro_f1": 0.5556,
+            "weighted_f1": 0.5595,
+            "brier_score": 0.5851,
+            "ece": 0.0834,
+            "per_class": {
+              "Negative": {
+                "precision": 0.5833,
+                "recall": 0.5833,
+                "f1": 0.5833,
+                "support": 24
+              },
+              "Neutral": {
+                "precision": 0.875,
+                "recall": 0.4375,
+                "f1": 0.5833,
+                "support": 16
+              },
+              "Positive": {
+                "precision": 0.4167,
+                "recall": 0.625,
+                "f1": 0.5,
+                "support": 16
+              }
+            }
+          },
+          "lexicon_baseline": {
+            "evaluated_count": 54,
+            "rejected_count": 2,
+            "accuracy_on_evaluated": 0.3519,
+            "macro_f1_on_evaluated": 0.23,
+            "mixed_count": 1
+          }
+        },
+        "strict_unique_heldout_test": {
+          "n_samples": 52,
+          "tfidf_logreg": {
+            "accuracy": 0.5385,
+            "macro_f1": 0.5177,
+            "weighted_f1": 0.534,
+            "brier_score": 0.6044,
+            "ece": 0.1007,
+            "per_class": {
+              "Negative": {
+                "precision": 0.6087,
+                "recall": 0.5833,
+                "f1": 0.5957,
+                "support": 24
+              },
+              "Neutral": {
+                "precision": 0.8,
+                "recall": 0.3077,
+                "f1": 0.4444,
+                "support": 13
+              },
+              "Positive": {
+                "precision": 0.4167,
+                "recall": 0.6667,
+                "f1": 0.5128,
+                "support": 15
+              }
+            }
+          },
+          "lexicon_baseline": {
+            "evaluated_count": 50,
+            "rejected_count": 2,
+            "accuracy_on_evaluated": 0.32,
+            "macro_f1_on_evaluated": 0.2219,
+            "mixed_count": 1
+          }
+        },
+        "negation_perturbation_check": {
+          "positive_polarity": 0.524,
+          "negated_polarity": -0.375,
+          "passed": true
+        },
+        "limitations": [
+          "Labels come from weakly labelled public social comments (N=200 train / 56 test) with 4 exact text duplicates overlapping train and test; both full and strict-unique metrics are reported.",
+          "Small test sample size yields wide confidence intervals on per-class F1."
+        ]
+      },
+      "lokananta_indonesian_guardrail": {
+        "dataset_id": "zenodo_lokananta_comments_ig",
+        "provenance": "real_public_data",
+        "total_comments": 552,
+        "auto_detect_status_counts": {
+          "success": 466,
+          "unsupported_language": 86
+        },
+        "auto_unsupported_language_pct": 15.58,
+        "auto_abstained_total_pct": 15.58,
+        "auto_null_sentiment_preserved": 86,
+        "hinted_unsupported_language_count": 552,
+        "hinted_null_relatability_preserved": 552
+      },
+      "instaart_comments": {
+        "dataset_id": "instaart_human_ai",
+        "provenance": "real_public_data",
+        "total_comments": 2810,
+        "classification_status_counts": {
+          "success": 1692,
+          "insufficient_context": 1040,
+          "unsupported_language": 78
+        },
+        "by_account_group": {
+          "ai": {
+            "total_comments": 1284,
+            "successfully_classified": 659,
+            "abstained_count": 625,
+            "mean_sentiment_score": 0.1745,
+            "positive_pct_of_classified": 37.78,
+            "relatable_pct_of_classified": 0.3
+          },
+          "human": {
+            "total_comments": 1526,
+            "successfully_classified": 1033,
+            "abstained_count": 493,
+            "mean_sentiment_score": 0.1985,
+            "positive_pct_of_classified": 38.53,
+            "relatable_pct_of_classified": 0.1
+          }
+        },
+        "display_rank_comparison": {
+          "top_10_display_mean_sentiment": 0.2072,
+          "rank_gt_10_mean_sentiment": 0.1824
+        }
+      }
+    },
+    "module4": {
+      "sponsored_unsponsored_observational": {
+        "experiment_type": "observational_comparison",
+        "is_causal": false,
+        "n_posts_total": 58204,
+        "n_creators_total": 40170,
+        "post_level_comparisons": [
+          {
+            "metric_name": "likes",
+            "metric_type": "continuous",
+            "variant_a_label": "unsponsored",
+            "variant_b_label": "sponsored",
+            "sample_size_a": 28779,
+            "sample_size_b": 29425,
+            "variant_a_mean": 60.8485,
+            "variant_b_mean": 532.1014,
+            "absolute_difference": 471.2528,
+            "lift_percent": 774.47,
+            "test_statistic": 8.8981,
+            "t_statistic": 8.8981,
+            "test_name": "Welch's t-test",
+            "primary_method": "Welch's t-test",
+            "p_value": 0.0,
+            "diagnostic_test_statistic": null,
+            "diagnostic_p_value": null,
+            "p_value_adjusted": 0.0,
+            "mann_whitney_p_value": 0.0,
+            "fisher_exact_p_value": null,
+            "ci_diff": [
+              367.447,
+              575.0587
+            ],
+            "ci_95_diff": [
+              367.447,
+              575.0587
+            ],
+            "ci_level": 0.95,
+            "ci_method": "Welch-Satterthwaite t-interval",
+            "effect_size": 0.073,
+            "effect_size_type": "Hedges' g",
+            "is_statistically_significant": true,
+            "winner": "Statistically Significant after HOLM correction (Favors sponsored)",
+            "unit_of_analysis": "Independent Post Unit (Cluster-Collapsed, N = posts)",
+            "clustering_handled": true,
+            "clustering_method": "Independent Post Units",
+            "warning_messages": [
+              "Observational comparison: Content variants were not delivered under controlled audience randomization. Differences indicate correlation only and cannot be interpreted as causal proof.",
+              "Variant A contains 3483 statistical outlier(s) (IQR method). Retained in dataset to preserve distribution integrity.",
+              "Variant B contains 3606 statistical outlier(s) (IQR method). Retained in dataset to preserve distribution integrity."
+            ],
+            "experiment_type": "observational_comparison"
+          },
+          {
+            "metric_name": "comments_count",
+            "metric_type": "continuous",
+            "variant_a_label": "unsponsored",
+            "variant_b_label": "sponsored",
+            "sample_size_a": 28779,
+            "sample_size_b": 29425,
+            "variant_a_mean": 2.8712,
+            "variant_b_mean": 29.6971,
+            "absolute_difference": 26.8258,
+            "lift_percent": 934.3,
+            "test_statistic": 11.4921,
+            "t_statistic": 11.4921,
+            "test_name": "Welch's t-test",
+            "primary_method": "Welch's t-test",
+            "p_value": 0.0,
+            "diagnostic_test_statistic": null,
+            "diagnostic_p_value": null,
+            "p_value_adjusted": 0.0,
+            "mann_whitney_p_value": 0.0,
+            "fisher_exact_p_value": null,
+            "ci_diff": [
+              22.2505,
+              31.4011
+            ],
+            "ci_95_diff": [
+              22.2505,
+              31.4011
+            ],
+            "ci_level": 0.95,
+            "ci_method": "Welch-Satterthwaite t-interval",
+            "effect_size": 0.0942,
+            "effect_size_type": "Hedges' g",
+            "is_statistically_significant": true,
+            "winner": "Statistically Significant after HOLM correction (Favors sponsored)",
+            "unit_of_analysis": "Independent Post Unit (Cluster-Collapsed, N = posts)",
+            "clustering_handled": true,
+            "clustering_method": "Independent Post Units",
+            "warning_messages": [
+              "Observational comparison: Content variants were not delivered under controlled audience randomization. Differences indicate correlation only and cannot be interpreted as causal proof.",
+              "Variant A contains 5162 statistical outlier(s) (IQR method). Retained in dataset to preserve distribution integrity.",
+              "Variant B contains 3830 statistical outlier(s) (IQR method). Retained in dataset to preserve distribution integrity."
+            ],
+            "experiment_type": "observational_comparison"
+          },
+          {
+            "metric_name": "likes_per_1k_followers",
+            "metric_type": "continuous",
+            "variant_a_label": "unsponsored",
+            "variant_b_label": "sponsored",
+            "sample_size_a": 28422,
+            "sample_size_b": 29061,
+            "variant_a_mean": 77.3139,
+            "variant_b_mean": 68.9804,
+            "absolute_difference": -8.3335,
+            "lift_percent": -10.78,
+            "test_statistic": -4.7807,
+            "t_statistic": -4.7807,
+            "test_name": "Welch's t-test",
+            "primary_method": "Welch's t-test",
+            "p_value": 0.0,
+            "diagnostic_test_statistic": null,
+            "diagnostic_p_value": null,
+            "p_value_adjusted": 0.0,
+            "mann_whitney_p_value": 0.0,
+            "fisher_exact_p_value": null,
+            "ci_diff": [
+              -11.7501,
+              -4.9169
+            ],
+            "ci_95_diff": [
+              -11.7501,
+              -4.9169
+            ],
+            "ci_level": 0.95,
+            "ci_method": "Welch-Satterthwaite t-interval",
+            "effect_size": -0.0401,
+            "effect_size_type": "Hedges' g",
+            "is_statistically_significant": true,
+            "winner": "Statistically Significant after HOLM correction (Favors unsponsored)",
+            "unit_of_analysis": "Independent Post Unit (Cluster-Collapsed, N = posts)",
+            "clustering_handled": true,
+            "clustering_method": "Independent Post Units",
+            "warning_messages": [
+              "Observational comparison: Content variants were not delivered under controlled audience randomization. Differences indicate correlation only and cannot be interpreted as causal proof.",
+              "Variant A contains 2863 statistical outlier(s) (IQR method). Retained in dataset to preserve distribution integrity.",
+              "Variant B contains 2402 statistical outlier(s) (IQR method). Retained in dataset to preserve distribution integrity."
+            ],
+            "experiment_type": "observational_comparison"
+          }
+        ],
+        "creator_clustered_comparisons": [
+          {
+            "metric_name": "likes (creator-clustered)",
+            "metric_type": "continuous",
+            "variant_a_label": "unsponsored",
+            "variant_b_label": "sponsored",
+            "sample_size_a": 23573,
+            "sample_size_b": 16626,
+            "variant_a_mean": 55.6402,
+            "variant_b_mean": 599.4473,
+            "absolute_difference": 543.8071,
+            "lift_percent": 977.36,
+            "test_statistic": 5.9929,
+            "t_statistic": 5.9929,
+            "test_name": "Welch's t-test",
+            "primary_method": "Welch's t-test",
+            "p_value": 0.0,
+            "diagnostic_test_statistic": null,
+            "diagnostic_p_value": null,
+            "p_value_adjusted": 0.0,
+            "mann_whitney_p_value": 0.0,
+            "fisher_exact_p_value": null,
+            "ci_diff": [
+              365.9431,
+              721.6711
+            ],
+            "ci_95_diff": [
+              365.9431,
+              721.6711
+            ],
+            "ci_level": 0.95,
+            "ci_method": "Welch-Satterthwaite t-interval",
+            "effect_size": 0.0722,
+            "effect_size_type": "Hedges' g",
+            "is_statistically_significant": true,
+            "winner": "Statistically Significant after HOLM correction (Favors sponsored)",
+            "unit_of_analysis": "Creator-Cluster Collapsed Unit (N_A=23573, N_B=16626 creators across 28779 + 29425 posts)",
+            "clustering_handled": true,
+            "clustering_method": "Creator-Level Mean Aggregation (mean posts/creator=1.45, est. ICC=0.945, DEFF=1.42)",
+            "warning_messages": [
+              "Observational comparison: Content variants were not delivered under controlled audience randomization. Differences indicate correlation only and cannot be interpreted as causal proof.",
+              "Variant A contains 2717 statistical outlier(s) (IQR method). Retained in dataset to preserve distribution integrity.",
+              "Variant B contains 1909 statistical outlier(s) (IQR method). Retained in dataset to preserve distribution integrity.",
+              "Creator Overlap Disclosure: 29 creator(s) contributed posts to both arms; creator-arm means are treated as unpaired unless analyzed via within-creator paired differences."
+            ],
+            "experiment_type": "observational_comparison"
+          },
+          {
+            "metric_name": "comments_count (creator-clustered)",
+            "metric_type": "continuous",
+            "variant_a_label": "unsponsored",
+            "variant_b_label": "sponsored",
+            "sample_size_a": 23573,
+            "sample_size_b": 16626,
+            "variant_a_mean": 2.8812,
+            "variant_b_mean": 35.6721,
+            "absolute_difference": 32.7909,
+            "lift_percent": 1138.1,
+            "test_statistic": 8.2918,
+            "t_statistic": 8.2918,
+            "test_name": "Welch's t-test",
+            "primary_method": "Welch's t-test",
+            "p_value": 0.0,
+            "diagnostic_test_statistic": null,
+            "diagnostic_p_value": null,
+            "p_value_adjusted": 0.0,
+            "mann_whitney_p_value": 0.0,
+            "fisher_exact_p_value": null,
+            "ci_diff": [
+              25.0394,
+              40.5424
+            ],
+            "ci_95_diff": [
+              25.0394,
+              40.5424
+            ],
+            "ci_level": 0.95,
+            "ci_method": "Welch-Satterthwaite t-interval",
+            "effect_size": 0.1,
+            "effect_size_type": "Hedges' g",
+            "is_statistically_significant": true,
+            "winner": "Statistically Significant after HOLM correction (Favors sponsored)",
+            "unit_of_analysis": "Creator-Cluster Collapsed Unit (N_A=23573, N_B=16626 creators across 28779 + 29425 posts)",
+            "clustering_handled": true,
+            "clustering_method": "Creator-Level Mean Aggregation (mean posts/creator=1.45, est. ICC=0.872, DEFF=1.39)",
+            "warning_messages": [
+              "Observational comparison: Content variants were not delivered under controlled audience randomization. Differences indicate correlation only and cannot be interpreted as causal proof.",
+              "Variant A contains 2342 statistical outlier(s) (IQR method). Retained in dataset to preserve distribution integrity.",
+              "Variant B contains 1955 statistical outlier(s) (IQR method). Retained in dataset to preserve distribution integrity.",
+              "Creator Overlap Disclosure: 29 creator(s) contributed posts to both arms; creator-arm means are treated as unpaired unless analyzed via within-creator paired differences."
+            ],
+            "experiment_type": "observational_comparison"
+          },
+          {
+            "metric_name": "likes_per_1k_followers (creator-clustered)",
+            "metric_type": "continuous",
+            "variant_a_label": "unsponsored",
+            "variant_b_label": "sponsored",
+            "sample_size_a": 23248,
+            "sample_size_b": 16554,
+            "variant_a_mean": 75.0625,
+            "variant_b_mean": 70.7973,
+            "absolute_difference": -4.2652,
+            "lift_percent": -5.68,
+            "test_statistic": -2.2349,
+            "t_statistic": -2.2349,
+            "test_name": "Welch's t-test",
+            "primary_method": "Welch's t-test",
+            "p_value": 0.02543,
+            "diagnostic_test_statistic": null,
+            "diagnostic_p_value": null,
+            "p_value_adjusted": 0.02543,
+            "mann_whitney_p_value": 0.0,
+            "fisher_exact_p_value": null,
+            "ci_diff": [
+              -8.0058,
+              -0.5246
+            ],
+            "ci_95_diff": [
+              -8.0058,
+              -0.5246
+            ],
+            "ci_level": 0.95,
+            "ci_method": "Welch-Satterthwaite t-interval",
+            "effect_size": -0.0211,
+            "effect_size_type": "Hedges' g",
+            "is_statistically_significant": true,
+            "winner": "Statistically Significant after HOLM correction (Favors unsponsored)",
+            "unit_of_analysis": "Creator-Cluster Collapsed Unit (N_A=23248, N_B=16554 creators across 28422 + 29061 posts)",
+            "clustering_handled": true,
+            "clustering_method": "Creator-Level Mean Aggregation (mean posts/creator=1.45, est. ICC=0.815, DEFF=1.36)",
+            "warning_messages": [
+              "Observational comparison: Content variants were not delivered under controlled audience randomization. Differences indicate correlation only and cannot be interpreted as causal proof.",
+              "Variant A contains 2303 statistical outlier(s) (IQR method). Retained in dataset to preserve distribution integrity.",
+              "Variant B contains 1415 statistical outlier(s) (IQR method). Retained in dataset to preserve distribution integrity.",
+              "Creator Overlap Disclosure: 29 creator(s) contributed posts to both arms; creator-arm means are treated as unpaired unless analyzed via within-creator paired differences."
+            ],
+            "experiment_type": "observational_comparison"
+          }
+        ],
+        "follower_tertile_stratified_likes": [
+          {
+            "follower_tier": "Small",
+            "n_a": 13170,
+            "n_b": 6116,
+            "mean_a": 11.33,
+            "mean_b": 18.41,
+            "relative_lift_pct": 62.43,
+            "hedges_g": 0.2917,
+            "p_value": 0.0
+          },
+          {
+            "follower_tier": "Mid",
+            "n_a": 10075,
+            "n_b": 9199,
+            "mean_a": 37.71,
+            "mean_b": 74.96,
+            "relative_lift_pct": 98.81,
+            "hedges_g": 0.3363,
+            "p_value": 0.0
+          },
+          {
+            "follower_tier": "Large",
+            "n_a": 5266,
+            "n_b": 14014,
+            "mean_a": 231.63,
+            "mean_b": 1057.96,
+            "relative_lift_pct": 356.74,
+            "hedges_g": 0.0738,
+            "p_value": 0.0
+          }
+        ],
+        "power_reports": {
+          "likes (creator-clustered)": {
+            "approximate_achieved_power": 1.0,
+            "approximation_method": "Standard normal approximation of non-central distribution",
+            "sample_size_a": 23573,
+            "sample_size_b": 16626,
+            "effect_size": 0.072176684554895,
+            "significance_alpha": 0.05,
+            "adequately_powered": true
+          },
+          "comments_count (creator-clustered)": {
+            "approximate_achieved_power": 1.0,
+            "approximation_method": "Standard normal approximation of non-central distribution",
+            "sample_size_a": 23573,
+            "sample_size_b": 16626,
+            "effect_size": 0.09995738938746715,
+            "significance_alpha": 0.05,
+            "adequately_powered": true
+          },
+          "likes_per_1k_followers (creator-clustered)": {
+            "approximate_achieved_power": 0.5458,
+            "approximation_method": "Standard normal approximation of non-central distribution",
+            "sample_size_a": 23248,
+            "sample_size_b": 16554,
+            "effect_size": -0.021102463238140974,
+            "significance_alpha": 0.05,
+            "adequately_powered": false
+          }
+        },
+        "disclosure": "STRICT NON-CAUSAL OBSERVATIONAL COHORT: Sponsored vs unsponsored posts are self-selected by creators and brand partnerships, not randomized. Follower-tier stratification and creator clustering mitigate pseudoreplication but cannot eliminate unmeasured confounding."
+      },
+      "instaart_group_counts": {
+        "total_posts": 79,
+        "unique_creators": 75,
+        "account_group_counts": {
+          "human": 40,
+          "ai": 39
+        },
+        "unique_pairs": 40
+      }
+    },
+    "module5": {
+      "tiktok_sample_recommendations": {
+        "sample_rows": 25000,
+        "unique_creators": 1730,
+        "is_synthetic_demonstration": false,
+        "all_recs_marked_real": true,
+        "total_recommendations": 4,
+        "recommendation_ids": [
+          "REC_TOPIC_001",
+          "REC_TIMING_001",
+          "REC_FORMAT_001",
+          "REC_EXP_AGENDA_003"
+        ],
+        "confidence_levels": {
+          "REC_TOPIC_001": "LOW",
+          "REC_TIMING_001": "LOW",
+          "REC_FORMAT_001": "LOW",
+          "REC_EXP_AGENDA_003": "LOW"
+        },
+        "evidence_breakdown": {
+          "historical_performance": 4
+        }
+      }
+    },
+    "module6": {
+      "tiktok_sample_kpis": {
+        "total_posts": 25000,
+        "total_views": 760469073,
+        "total_impressions": null,
+        "total_likes": 63213077,
+        "total_comments": 900070,
+        "total_shares": 3858458,
+        "total_saves": null,
+        "total_new_followers": null,
+        "avg_views_per_post": 30418.8,
+        "avg_reach_per_post": null,
+        "overall_views_engagement_rate": 8.94,
+        "pooled_views_engagement_rate": 8.94,
+        "mean_post_level_views_engagement_rate": 8.52,
+        "overall_reach_engagement_rate": null,
+        "pooled_reach_engagement_rate": null,
+        "mean_post_level_reach_engagement_rate": null,
+        "rate_definitions": {
+          "pooled_views_engagement_rate": "Volume-weighted: Total interactions divided by total views.",
+          "mean_post_level_views_engagement_rate": "Arithmetic Mean: Average of individual post-level views engagement rates.",
+          "pooled_reach_engagement_rate": "Volume-weighted: Total Instagram interactions divided by total Instagram reach.",
+          "mean_post_level_reach_engagement_rate": "Arithmetic Mean: Average of individual Instagram post reach rates."
+        },
+        "platform_metric_availability": {
+          "Instagram": {
+            "saves_tracked": true,
+            "reach_tracked": true,
+            "denominators": [
+              "views",
+              "reach"
+            ]
+          },
+          "YouTube": {
+            "saves_tracked": false,
+            "reach_tracked": false,
+            "denominators": [
+              "views"
+            ]
+          },
+          "TikTok": {
+            "saves_tracked": false,
+            "collect_count_proxy_tracked": true,
+            "reach_tracked": false,
+            "denominators": [
+              "views"
+            ]
+          }
+        },
+        "metric_availability": {
+          "views": true,
+          "impressions": false,
+          "likes": true,
+          "comments_count": true,
+          "shares": true,
+          "saves": false,
+          "collect_count": true,
+          "new_followers": false,
+          "reach": false
+        },
+        "total_collect_count_proxy": 4054211,
+        "dataset_id": "tiktok_engagement_200k",
+        "provenances": [
+          "real_public_data"
+        ],
+        "connected_platforms": [
+          "Tiktok"
+        ],
+        "platform_count": 1,
+        "reporting_period": "2024-06-24 to 2024-07-10",
+        "period_days": 17,
+        "active_posting_days": 17,
+        "missing_posting_dates": 0,
+        "has_previous_period_comparison": true,
+        "comparison_deltas": {
+          "views_delta_pct": -1.9,
+          "eng_delta_pct": -0.2,
+          "posts_delta_pct": -3.3
+        },
+        "comparison_note": "Compared against equal-duration prior period (12711 vs 12289 posts, equal time span).",
+        "period_details": {
+          "equal_duration_verified": true,
+          "prev_posts_count": 12711,
+          "curr_posts_count": 12289,
+          "prev_views": 383839764,
+          "curr_views": 376629309,
+          "prev_engagement": 34013222,
+          "curr_engagement": 33958383,
+          "active_posting_days": 17,
+          "missing_posting_dates": 0
+        }
+      },
+      "tiktok_platform_comparison": [
+        {
+          "Platform": "Tiktok",
+          "Posts": 25000,
+          "Total Views": 760469073,
+          "Avg Views/Post": 30418.8,
+          "Normalized Eng Rate (%)": 8.94,
+          "Full Eng Rate (%)": 8.94,
+          "Share Rate (%)": 0.507,
+          "Save Rate (%)": null,
+          "Avg Retention (%)": null,
+          "Available Fields": "Views, Likes, Comments, Shares, + collect_count bookmark proxy"
+        }
+      ],
+      "sponsored_static_content_breakdown": [
+        {
+          "content_type": "image",
+          "post_count": 10000,
+          "avg_views": null,
+          "avg_likes": 442.473,
+          "avg_shares": null,
+          "avg_retention": null,
+          "avg_comments": 24.8952,
+          "avg_saves": null,
+          "views_engagement_rate": null,
+          "high_intent_rate": null
+        }
+      ]
+    },
+    "module7": {
+      "daily_views": {
+        "status": "VALID",
+        "history_start": "2024-06-24",
+        "history_end": "2024-09-22",
+        "history_points": 91,
+        "missing_calendar_days_full_span": 10,
+        "overall_coverage_pct": 94.1,
+        "coverage_status": "Modeled Contiguous Gap-Free Segment (91d: 2024-06-24 to 2024-09-22; Full Span Continuity 94.1% with 10 missing snapshot day(s))",
+        "champion_model": "AutoRegressive Ridge (AR)",
+        "validation_origins_count": 10,
+        "validation_observations_count": 40,
+        "is_calibrated": false,
+        "disclosures_count": 7,
+        "evaluations": [
+          {
+            "model_name": "Naive (Persistence)",
+            "mae": 2969527.58,
+            "rmse": 3821143.8,
+            "mase": 1.006,
+            "relative_mae_to_naive": 1.0,
+            "is_champion": false
+          },
+          {
+            "model_name": "Moving Average",
+            "mae": 3534668.73,
+            "rmse": 4441235.83,
+            "mase": 1.198,
+            "relative_mae_to_naive": 1.19,
+            "is_champion": false
+          },
+          {
+            "model_name": "Holt Exponential Smoothing",
+            "mae": 3095471.56,
+            "rmse": 3991498.83,
+            "mase": 1.049,
+            "relative_mae_to_naive": 1.042,
+            "is_champion": false
+          },
+          {
+            "model_name": "AutoRegressive Ridge (AR)",
+            "mae": 2412191.36,
+            "rmse": 3024993.23,
+            "mase": 0.817,
+            "relative_mae_to_naive": 0.812,
+            "is_champion": true
+          },
+          {
+            "model_name": "Seasonal Naive",
+            "mae": 4437506.55,
+            "rmse": 5274526.24,
+            "mase": 1.504,
+            "relative_mae_to_naive": 1.494,
+            "is_champion": false
+          }
+        ],
+        "horizon_forecast_step_1": 41904129.97,
+        "horizon_forecast_step_7": 41465470.51
+      },
+      "daily_collects": {
+        "status": "VALID",
+        "history_start": "2024-06-24",
+        "history_end": "2024-09-22",
+        "history_points": 91,
+        "missing_calendar_days_full_span": 10,
+        "overall_coverage_pct": 94.1,
+        "coverage_status": "Modeled Contiguous Gap-Free Segment (91d: 2024-06-24 to 2024-09-22; Full Span Continuity 94.1% with 10 missing snapshot day(s))",
+        "champion_model": "Moving Average",
+        "validation_origins_count": 10,
+        "validation_observations_count": 40,
+        "is_calibrated": false,
+        "disclosures_count": 8,
+        "evaluations": [
+          {
+            "model_name": "Naive (Persistence)",
+            "mae": 18456.78,
+            "rmse": 22503.13,
+            "mase": 0.955,
+            "relative_mae_to_naive": 1.0,
+            "is_champion": false
+          },
+          {
+            "model_name": "Moving Average",
+            "mae": 10822.08,
+            "rmse": 13788.45,
+            "mase": 0.56,
+            "relative_mae_to_naive": 0.586,
+            "is_champion": true
+          },
+          {
+            "model_name": "Holt Exponential Smoothing",
+            "mae": 25442.78,
+            "rmse": 32222.67,
+            "mase": 1.316,
+            "relative_mae_to_naive": 1.379,
+            "is_champion": false
+          },
+          {
+            "model_name": "AutoRegressive Ridge (AR)",
+            "mae": 17135.33,
+            "rmse": 22118.84,
+            "mase": 0.887,
+            "relative_mae_to_naive": 0.928,
+            "is_champion": false
+          },
+          {
+            "model_name": "Seasonal Naive",
+            "mae": 17368.17,
+            "rmse": 22422.29,
+            "mase": 0.899,
+            "relative_mae_to_naive": 0.941,
+            "is_champion": false
+          }
+        ],
+        "horizon_forecast_step_1": 193224.14,
+        "horizon_forecast_step_7": 193224.14
+      }
+    }
+  }
+}

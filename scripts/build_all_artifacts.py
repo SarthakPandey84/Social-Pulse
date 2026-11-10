@@ -18,7 +18,8 @@ from pathlib import Path
 import platform
 import sqlite3
 import sys
-from typing import Any, Dict, Optional
+import threading
+from typing import Any, Dict, Optional, Tuple
 
 import pandas as pd
 import sklearn
@@ -70,6 +71,47 @@ REQUIRED_POST_MODELING_CONTEXT_COLUMNS = [
 ]
 
 REQUIRED_TREND_COLUMNS = ["date", "keyword", "mention_volume"]
+
+REQUIRED_ARTIFACT_RELATIVE_PATHS: Tuple[Path, ...] = (
+    Path("data") / "processed" / "processed_posts.parquet",
+    Path("data") / "processed" / "processed_posts.csv",
+    Path("data") / "processed" / "processed_comments.parquet",
+    Path("data") / "processed" / "processed_comments.csv",
+    Path("data") / "processed" / "processed_ab_tests.parquet",
+    Path("data") / "processed" / "processed_ab_tests.csv",
+    Path("database") / "social_analytics.db",
+    Path("models") / "virality_predictor.joblib",
+    Path("models") / "virality_predictor_metadata.json",
+    Path("models") / "relatability_classifier.joblib",
+    Path("models") / "relatability_metadata.json",
+)
+
+_BUILD_LOCKS_GUARD = threading.Lock()
+_BUILD_LOCKS: Dict[Path, threading.RLock] = {}
+
+
+def get_build_lock(root_dir: Optional[Path] = None) -> threading.RLock:
+    """Return the process-wide re-entrant lock coordinating builds for ``root_dir``."""
+    target_root = Path(root_dir).resolve() if root_dir is not None else ROOT_DIR
+    with _BUILD_LOCKS_GUARD:
+        lock = _BUILD_LOCKS.get(target_root)
+        if lock is None:
+            lock = threading.RLock()
+            _BUILD_LOCKS[target_root] = lock
+        return lock
+
+
+def artifacts_present_and_nonempty(root_dir: Optional[Path] = None) -> bool:
+    """Return True iff every required generated artifact exists on disk and is non-empty."""
+    target_root = Path(root_dir).resolve() if root_dir is not None else ROOT_DIR
+    for rel_path in REQUIRED_ARTIFACT_RELATIVE_PATHS:
+        candidate = target_root / rel_path
+        try:
+            if not candidate.is_file() or candidate.stat().st_size <= 0:
+                return False
+        except OSError:
+            return False
+    return True
 
 
 def _validate_sample_posts(root_dir: Path) -> pd.DataFrame:
@@ -212,21 +254,8 @@ def verify_generated_artifacts(
     models_dir = root_dir / "models"
     db_path = root_dir / "database" / "social_analytics.db"
 
-    required_paths = [
-        processed_dir / "processed_posts.parquet",
-        processed_dir / "processed_posts.csv",
-        processed_dir / "processed_comments.parquet",
-        processed_dir / "processed_comments.csv",
-        processed_dir / "processed_ab_tests.parquet",
-        processed_dir / "processed_ab_tests.csv",
-        db_path,
-        models_dir / "virality_predictor.joblib",
-        models_dir / "virality_predictor_metadata.json",
-        models_dir / "relatability_classifier.joblib",
-        models_dir / "relatability_metadata.json",
-    ]
-    for p in required_paths:
-        _assert_file_present_and_nonempty(p)
+    for rel_path in REQUIRED_ARTIFACT_RELATIVE_PATHS:
+        _assert_file_present_and_nonempty(root_dir / rel_path)
 
     # 1. Verify processed_posts
     df_posts_pq = pd.read_parquet(processed_dir / "processed_posts.parquet")
@@ -359,10 +388,8 @@ def build_all_artifacts(
     """Build (or validate) all SocialPulse derived data, SQLite, and model artifacts deterministically."""
     target_root = Path(root_dir).resolve() if root_dir is not None else ROOT_DIR
 
-    # Fail-fast pre-flight validation BEFORE mutating any output artifacts
-    input_summary = validate_source_inputs(target_root)
-
     if validate_only:
+        input_summary = validate_source_inputs(target_root)
         verification = verify_generated_artifacts(target_root)
         return {
             "mode": "validate_only",
@@ -371,92 +398,107 @@ def build_all_artifacts(
             "verification": verification,
         }
 
-    # Stage 1: Module 1 Ingestion, Cleaning & Feature Engineering -> data/processed/processed_posts.{parquet,csv}
-    sample_dir = target_root / "data" / "sample"
-    df_posts_raw, _ = SampleDataIngestion(sample_dir=sample_dir).load_sample_posts("sample_posts.csv")
-    df_posts_clean = clean_posts_dataset(df_posts_raw)
-    df_posts_feat = add_engagement_features(df_posts_clean)
+    with get_build_lock(target_root):
+        # Fail-fast pre-flight validation BEFORE mutating any output artifacts
+        input_summary = validate_source_inputs(target_root)
 
-    storage = DataStorageManager(
-        raw_dir=target_root / "data" / "raw",
-        processed_dir=target_root / "data" / "processed",
-        db_path=target_root / "database" / "social_analytics.db",
-    )
-    posts_pq_path, posts_csv_path = storage.save_processed_dataset(df_posts_feat, base_name="processed_posts")
+        # Stage 1: Module 1 Ingestion, Cleaning & Feature Engineering -> data/processed/processed_posts.{parquet,csv}
+        sample_dir = target_root / "data" / "sample"
+        df_posts_raw, _ = SampleDataIngestion(sample_dir=sample_dir).load_sample_posts("sample_posts.csv")
+        df_posts_clean = clean_posts_dataset(df_posts_raw)
+        df_posts_feat = add_engagement_features(df_posts_clean)
 
-    # Stage 2: SQLite Warehouse Persistence (idempotent replace)
-    sqlite_rows = storage.persist_to_sqlite(df_posts_feat, table_name="posts", if_exists="replace")
+        storage = DataStorageManager(
+            raw_dir=target_root / "data" / "raw",
+            processed_dir=target_root / "data" / "processed",
+            db_path=target_root / "database" / "social_analytics.db",
+        )
+        posts_pq_path, posts_csv_path = storage.save_processed_dataset(df_posts_feat, base_name="processed_posts")
 
-    # Stage 3: Module 2 Virality Prediction Model & Metadata
-    predictor = ViralityPredictor()
-    vir_meta = predictor.train_and_evaluate(
-        df_posts_feat,
-        model_type="ridge",
-        test_ratio=0.2,
-        min_elapsed_days=7.0,
-    )
-    vir_model_path = target_root / "models" / "virality_predictor.joblib"
-    vir_meta_path = target_root / "models" / "virality_predictor_metadata.json"
-    predictor.save_model_pipeline(vir_model_path, vir_meta_path, include_volatile_timestamps=False)
+        # Stage 2: SQLite Warehouse Persistence (idempotent replace)
+        sqlite_rows = storage.persist_to_sqlite(df_posts_feat, table_name="posts", if_exists="replace")
 
-    # Stage 4: Module 3 NLP Classifier, Metadata & Processed Comments (read-only on sample_comments.csv)
-    nlp_res = run_nlp_pipeline(base_dir=target_root, overwrite_sample=False, seed=42)
+        # Stage 3: Module 2 Virality Prediction Model & Metadata
+        predictor = ViralityPredictor()
+        vir_meta = predictor.train_and_evaluate(
+            df_posts_feat,
+            model_type="ridge",
+            test_ratio=0.2,
+            min_elapsed_days=7.0,
+        )
+        vir_model_path = target_root / "models" / "virality_predictor.joblib"
+        vir_meta_path = target_root / "models" / "virality_predictor_metadata.json"
+        predictor.save_model_pipeline(vir_model_path, vir_meta_path, include_volatile_timestamps=False)
 
-    # Stage 5: Module 4 A/B Test Observations (read-only on sample_experiments.csv)
-    ab_res = generate_ab_fixtures(base_dir=target_root, overwrite_sample=False, seed=42)
+        # Stage 4: Module 3 NLP Classifier, Metadata & Processed Comments (read-only on sample_comments.csv)
+        nlp_res = run_nlp_pipeline(base_dir=target_root, overwrite_sample=False, seed=42)
 
-    # Stage 5b: Persist truthful runtime build provenance separately in gitignored manifest
-    sample_hashes = {
-        csv_path.name: hashlib.sha256(csv_path.read_bytes()).hexdigest()
-        for csv_path in sorted((target_root / "data" / "sample").glob("*.csv"))
-    }
-    provenance_path = target_root / "models" / "build_provenance.json"
-    provenance_payload = {
-        "built_at_utc": datetime.now(timezone.utc).isoformat(),
-        "virality_model_trained_at_utc": vir_meta.get("trained_at"),
-        "nlp_model_trained_at_utc": nlp_res.get("runtime_provenance", {}).get("trained_at"),
-        "python_version": platform.python_version(),
-        "pandas_version": pd.__version__,
-        "scikit_learn_version": sklearn.__version__,
-        "source_dataset_sha256": sample_hashes,
-        "notes": (
-            "Runtime build provenance containing intentionally variable wall-clock timestamps. "
-            "Excluded from git tracking to keep models/*_metadata.json deterministic."
-        ),
-    }
-    with open(provenance_path, "w", encoding="utf-8", newline="\n") as pf:
-        json.dump(provenance_payload, pf, indent=2)
-        pf.write("\n")
+        # Stage 5: Module 4 A/B Test Observations (read-only on sample_experiments.csv)
+        ab_res = generate_ab_fixtures(base_dir=target_root, overwrite_sample=False, seed=42)
 
-    # Stage 6: Strict Post-Build Verification
-    verification = verify_generated_artifacts(
-        target_root,
-        expected_counts={
-            "posts_rows": len(df_posts_feat),
-            "comments_rows": nlp_res["comments_count"],
-            "ab_rows": ab_res["observations_count"],
-        },
-    )
+        # Stage 5b: Persist truthful runtime build provenance separately in gitignored manifest
+        sample_hashes = {
+            csv_path.name: hashlib.sha256(csv_path.read_bytes()).hexdigest()
+            for csv_path in sorted((target_root / "data" / "sample").glob("*.csv"))
+        }
+        provenance_path = target_root / "models" / "build_provenance.json"
+        existing_provenance: Dict[str, Any] = {}
+        if provenance_path.is_file():
+            try:
+                loaded_prov = json.loads(provenance_path.read_text(encoding="utf-8"))
+                if isinstance(loaded_prov, dict):
+                    existing_provenance = loaded_prov
+            except (OSError, json.JSONDecodeError):
+                existing_provenance = {}
+        provenance_payload = {
+            "built_at_utc": datetime.now(timezone.utc).isoformat(),
+            "virality_model_trained_at_utc": vir_meta.get("trained_at"),
+            "nlp_model_trained_at_utc": nlp_res.get("runtime_provenance", {}).get("trained_at"),
+            "python_version": platform.python_version(),
+            "pandas_version": pd.__version__,
+            "scikit_learn_version": sklearn.__version__,
+            "source_dataset_sha256": sample_hashes,
+            "notes": (
+                "Runtime build provenance containing intentionally variable wall-clock timestamps. "
+                "Excluded from git tracking to keep models/*_metadata.json and models/*_benchmarks.json deterministic."
+            ),
+        }
+        for bench_key in ("performance_benchmarks_generated_at_utc", "real_data_benchmarks_generated_at_utc"):
+            if bench_key in existing_provenance:
+                provenance_payload[bench_key] = existing_provenance[bench_key]
+        with open(provenance_path, "w", encoding="utf-8", newline="\n") as pf:
+            json.dump(provenance_payload, pf, indent=2)
+            pf.write("\n")
 
-    return {
-        "mode": "build",
-        "root_dir": str(target_root),
-        "inputs": input_summary,
-        "outputs": {
-            "processed_posts": [str(posts_pq_path), str(posts_csv_path)],
-            "sqlite_db": str(storage.db_path),
-            "sqlite_rows": sqlite_rows,
-            "virality_model": str(vir_model_path),
-            "virality_metadata": str(vir_meta_path),
-            "virality_metrics": vir_meta["candidate_metrics"],
-            "nlp_model": str(nlp_res["model_path"]),
-            "nlp_metadata": str(nlp_res["metadata_path"]),
-            "build_provenance": str(provenance_path),
-            "processed_comments": [str(nlp_res["processed_parquet_path"]), str(nlp_res["processed_csv_path"])],
-            "processed_ab_tests": [str(ab_res["obs_parquet_path"]), str(ab_res["obs_csv_path"])],
-        },
-        "verification": verification,
-    }
+        # Stage 6: Strict Post-Build Verification
+        verification = verify_generated_artifacts(
+            target_root,
+            expected_counts={
+                "posts_rows": len(df_posts_feat),
+                "comments_rows": nlp_res["comments_count"],
+                "ab_rows": ab_res["observations_count"],
+            },
+        )
+
+        return {
+            "mode": "build",
+            "root_dir": str(target_root),
+            "inputs": input_summary,
+            "outputs": {
+                "processed_posts": [str(posts_pq_path), str(posts_csv_path)],
+                "sqlite_db": str(storage.db_path),
+                "sqlite_rows": sqlite_rows,
+                "virality_model": str(vir_model_path),
+                "virality_metadata": str(vir_meta_path),
+                "virality_metrics": vir_meta["candidate_metrics"],
+                "nlp_model": str(nlp_res["model_path"]),
+                "nlp_metadata": str(nlp_res["metadata_path"]),
+                "build_provenance": str(provenance_path),
+                "processed_comments": [str(nlp_res["processed_parquet_path"]), str(nlp_res["processed_csv_path"])],
+                "processed_ab_tests": [str(ab_res["obs_parquet_path"]), str(ab_res["obs_csv_path"])],
+            },
+            "verification": verification,
+        }
 
 
 def main(argv: Optional[list] = None) -> int:

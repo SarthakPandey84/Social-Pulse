@@ -1,0 +1,45 @@
+{
+  "python_version": "3.11.9",
+  "benchmark_reproducibility": {
+    "artifact_type": "deterministic_performance_benchmark",
+    "baseline_origin": "hardcoded_historical_pre_batch5a_reference",
+    "measured_timing_method": "time.perf_counter() and tracemalloc on current HEAD (includes warm-backend and cold-init dashboard paths)",
+    "intentionally_variable_fields_excluded": [
+      "generated_at_utc"
+    ],
+    "runtime_provenance_location": "models/build_provenance.json"
+  },
+  "pre_optimization_baseline": {
+    "source_note": "Historical pre-Batch-5A baseline recorded prior to vectorization on a local Python 3.11.9 workstation (fixed reference for comparison ratios; not re-executed on HEAD)",
+    "evi_5k_seconds": 1.8833,
+    "feature_engineering_5k_seconds": 3.3271,
+    "dashboard_synthesis_seconds": 0.4129,
+    "peak_memory_mb": 15.53
+  },
+  "post_optimization_measured": {
+    "evi_5k_seconds": 0.0324,
+    "evi_5k_peak_mb": 2.39,
+    "evi_5k_speedup_x": 58.1,
+    "feature_engineering_5k_seconds": 0.0286,
+    "feature_engineering_5k_peak_mb": 5.13,
+    "feature_engineering_5k_speedup_x": 116.3,
+    "dashboard_synthesis_seconds": 0.1692,
+    "dashboard_synthesis_peak_mb": 0.44,
+    "dashboard_synthesis_speedup_x": 2.4,
+    "dashboard_cold_init_and_synthesis_seconds": 0.217,
+    "dashboard_cold_init_and_synthesis_peak_mb": 0.58,
+    "peak_memory_mb": 5.13,
+    "peak_memory_reduction_pct": 67.0
+  },
+  "external_scale_benchmarks": {
+    "tiktok_engagement_200k": {
+      "row_count": 209543,
+      "projected_parquet_read_seconds": 0.0274,
+      "add_engagement_features_seconds": 0.5358,
+      "add_engagement_features_peak_mb": 207.1,
+      "evi_detailed_seconds": 0.2905,
+      "evi_detailed_peak_mb": 93.57,
+      "rank_topics_seconds": 0.5125
+    }
+  }
+}
